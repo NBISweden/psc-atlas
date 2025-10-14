@@ -2,7 +2,7 @@
 
 ## Assumed deployment environment
 
-This project assumes that it will be deployed as somthing similar to a
+This project assumes that it will be deployed as something similar to a
 "Custom App" on [SciLifeLab Serve](https://serve.scilifelab.se/). It's
 "production environment" is therefore restricted to using only a single
 Docker container, with a single persistent volume, and no bind mounts.
