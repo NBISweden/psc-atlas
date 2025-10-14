@@ -22,8 +22,14 @@ FROM base AS prod
 
 # Production-specific setup.
 
+# Remove this later, when this build target does something:
+RUN echo 'PRODUCTION BUILD'
+
 #-----------------------------------------------------------------------
 
 FROM base AS dev
 
 # Development-specific setup.
+
+# Remove this later, when this build target does something:
+RUN echo 'DEVELOPMENT BUILD'
