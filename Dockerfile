@@ -12,7 +12,7 @@ RUN adduser -D -u "$UID" psc-atlas
 WORKDIR /home/psc-atlas
 
 # Create mountpoint for the persistent volume.
-RUN install -d -o psc-atlas -m 700 vol
+RUN install -d -o "$UID" -m 700 vol
 
 USER "$UID"
 
