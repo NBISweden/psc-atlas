@@ -1,0 +1,5 @@
+services:
+
+  psc-atlas:
+    build:
+      target: dev

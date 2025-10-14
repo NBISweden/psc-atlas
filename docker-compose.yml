@@ -1,0 +1,13 @@
+name: psc-atlas
+
+services:
+
+  psc-atlas:
+    build:
+      context: .
+      target: prod
+    volumes:
+      - vol:/home/psc-atlas/vol
+
+volumes:
+  vol:
