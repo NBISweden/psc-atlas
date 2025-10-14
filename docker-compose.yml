@@ -7,7 +7,7 @@ services:
       context: .
       target: prod
     volumes:
-      - vol:/home/psc-atlas/vol
+      - project-vol:/home/psc-atlas/vol
 
 volumes:
-  vol:
+  project-vol:
