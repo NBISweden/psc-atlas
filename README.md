@@ -3,7 +3,7 @@
 ## Assumed deployment environment
 
 This project assumes that it will be deployed as something similar to a
-"Custom App" on [SciLifeLab Serve](https://serve.scilifelab.se/). It's
+"Custom App" on [SciLifeLab Serve](https://serve.scilifelab.se/). Its
 "production environment" is therefore restricted to using only a single
 Docker container, with a single persistent volume, and no bind mounts.
 
