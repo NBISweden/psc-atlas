@@ -9,7 +9,7 @@ services:
     volumes:
       - project-vol:/home/psc-atlas/vol
     ports:
-      - 127.0.0.1:3320:8000
+      - 127.0.0.1:3320:80
 
 volumes:
   project-vol:

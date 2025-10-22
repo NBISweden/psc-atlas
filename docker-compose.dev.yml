@@ -8,3 +8,11 @@ services:
         GID: "${GID:-1000}"
     volumes:
       - ./backend:/home/psc-atlas/backend
+
+  psc-atlas-frontend:
+    image: node:22
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /home/psc-atlas/frontend
+    command: bash -c 'npm ci || npm install && npm run dev'
+    volumes:
+      - ./frontend:/home/psc-atlas/frontend
