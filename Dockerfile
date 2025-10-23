@@ -29,6 +29,7 @@ FROM base AS dev
 COPY --chown=$UID --chmod=444 caddy/Caddyfile ./Caddyfile
 
 ENV SERVICE_MODE="development"
+ENV PYTHONDONTWRITEBYTECODE=1
 WORKDIR /home/psc-atlas/backend
 
 CMD ["./start-script.dev.sh"]
@@ -54,7 +55,7 @@ FROM base AS backend-build
 # Production-specific setup.
 
 RUN mkdir -p /home/psc-atlas/backend
-COPY --exclude=.venv --exclude=__pycache__ --exclude=start-script*.sh --chown=$UID backend backend
+COPY --chown=$UID backend backend
 WORKDIR /home/psc-atlas/backend
 RUN uv sync
 RUN uv run mypy .
