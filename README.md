@@ -33,6 +33,15 @@ development environment:
 ./docker-compose.sh {up|down|...}
 ```
 
+### Entrypoints
+
+There are two main entrypoints for the site in the docker setup. The 
+static fronted and the backend API which can be found as follows:
+
+- Backend API: http://localhost:3320/api/v1/
+- Frontend: http://localhost:3320/
+
+
 ### Differences between development and production environments
 
 The main differences between the two environments are:
