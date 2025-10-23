@@ -8,6 +8,8 @@ services:
       target: prod
     volumes:
       - project-vol:/home/psc-atlas/vol
+    ports:
+      - 127.0.0.1:3320:80
 
 volumes:
   project-vol:
