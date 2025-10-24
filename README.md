@@ -16,31 +16,34 @@ environment.
 Thus, to start the production environment, use:
 
 ``` sh
-docker compose up
+./compose-prod.sh up --build
 ```
+
+(Skip `--build` if you use pre-built Docker images.)
 
 To start the development environment, use:
 
 ``` sh
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+./compose-dev.sh up --build
 ```
 
-There is also a convenience script, `docker-compose.sh`, that can be
-used as a wrapper for `docker compose` commands addressing the
-development environment:
+The two convenience scripts `compose-prod.sh` and `compose-dev.sh` are
+used as wrappers for `docker compose` commands addressing the respective
+environments.
+
+For example:
 
 ``` sh
-./docker-compose.sh {up|down|...}
+./compose-prod.sh {up|down|logs|...}
 ```
 
 ### Entrypoints
 
-There are two main entrypoints for the site in the docker setup. The 
+There are two main entrypoints for the site in the docker setup. The
 static fronted and the backend API which can be found as follows:
 
 - Backend API: http://localhost:3320/api/v1/
 - Frontend: http://localhost:3320/
-
 
 ### Differences between development and production environments
 
