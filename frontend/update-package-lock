@@ -1,0 +1,13 @@
+#!/bin/sh -
+
+set -x
+
+docker build \
+	-f Dockerfile.update-package-lock \
+	-t update-package-lock \
+	--build-arg UID="$(id -u)" \
+	--build-arg GID="$(id -g)" \
+	. &&
+docker run \
+	--rm \
+	update-package-lock >package-lock.json

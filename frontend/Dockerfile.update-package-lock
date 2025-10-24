@@ -1,0 +1,26 @@
+FROM node:24-alpine
+
+ARG UID=1000
+ARG GID=1000
+
+ENV HOME=/home/node
+RUN install -d -o "$UID" -g "$GID" "$HOME"
+
+USER "$UID:$GID"
+
+ENV XDG_CACHE_HOME="$HOME/.cache"
+
+ENV npm_config_cache="$XDG_CACHE_HOME/npm"
+
+WORKDIR "$HOME"
+
+COPY --chown="$UID:$GID" package.json .
+
+RUN --mount=type=cache,uid="$UID",target="$npm_config_cache" \
+	npm install --loglevel=info \
+		--package-lock-only \
+		--ignore-scripts \
+		--no-audit \
+		--fund=false
+
+CMD ["cat", "package-lock.json"]
