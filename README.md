@@ -11,7 +11,6 @@ Docker container, with a single persistent volume, and no bind mounts.
 
 The `docker-compose.yml` file defines the production environment, while
 the `docker-compose.dev.yml` contains the overrides for the development
-environment.
 
 Thus, to start the production environment, use:
 
@@ -59,3 +58,24 @@ The production environment should ideally be pulling a ready-made image
 from a registry and only be building the image locally for testing
 purposes. This is not yet implemented as there is currently no built
 image available in a registry.
+
+## Docker build targets
+
+- `node:24-alpine`
+  - `frontend`
+    - `frontend-dev` (`./frontend` context)
+    - `frontend-prod` (`./` context)
+- `python:3.12-alpine`
+  - `backend`
+    - `backend-dev` (`./backend` context)
+    - `backend-prod` (`./` context)
+    - `update-uv-lock` (`./backend` context)
+- `alpine:3.22`
+  - `proxy` (`./` context)
+    - `proxy-dev`
+    - `proxy-frontend`
+      - copy from `frontend-prod`
+    - `proxy-backend`
+      - copy from `backend-prod`
+    - `proxy-prod`
+      - copy from `proxy-frontend` and `proxy-backend`
