@@ -1,0 +1,22 @@
+#!/bin/sh -
+
+set -x
+
+docker build \
+	-f ../Dockerfile \
+	-t update-uv-lock \
+	--build-arg UID="$(id -u)" \
+	--build-arg GID="$(id -g)" \
+	. &&
+docker run \
+	--rm \
+	update-uv-lock >uv.lock.new
+
+if ! cmp -s uv.lock.new uv.lock
+then
+	mv uv.lock.new uv.lock
+		echo 'UV lock updated'
+	else
+		rm uv.lock.new
+	echo 'UV lock did not need updating'
+fi
