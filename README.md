@@ -19,6 +19,7 @@ backend API, which can be found as follows:
 
 The `docker-compose.yml` file defines the production environment, while
 the `docker-compose.dev.yml` contains the overrides for the development
+environment.
 
 Thus, to start the production environment, use:
 
