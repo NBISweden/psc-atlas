@@ -1,13 +1,21 @@
 #!/bin/sh -
 
-set -x
-
 docker build \
-	-f Dockerfile.update-package-lock \
-	-t update-package-lock \
+	-f ../Dockerfile \
+	--target frontend-update-lock \
+	-t frontend-update-lock \
 	--build-arg UID="$(id -u)" \
 	--build-arg GID="$(id -g)" \
 	. &&
 docker run \
 	--rm \
-	update-package-lock >package-lock.json
+	frontend-update-lock >package-lock.json.new
+
+if ! cmp -s package-lock.json.new package-lock.json
+then
+	mv package-lock.json.new package-lock.json
+	echo 'Package lock updated'
+else
+	rm package-lock.json.new
+	echo 'Package lock did not need updating'
+fi

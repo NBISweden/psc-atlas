@@ -61,6 +61,20 @@ RUN --mount=type=cache,uid="$UID",target="$npm_config_cache" \
 
 # ----
 
+FROM frontend AS frontend-update-lock
+
+RUN --mount=type=bind,source=package.json,target=./package.json \
+    --mount=type=cache,uid="$UID",target="$npm_config_cache" \
+	npm install \
+		--package-lock-only \
+		--ignore-scripts \
+		--no-audit \
+		--fund=false
+
+CMD ["cat", "package-lock.json"]
+
+# ----
+
 FROM python:3.12-alpine AS backend
 
 ARG UID=1000
@@ -118,6 +132,16 @@ RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv run python -m build
 
 # Note: The built wheel file is copied in the "proxy-backend" stage.
+
+# ----
+
+FROM backend AS backend-update-lock
+
+RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
+	uv lock --upgrade
+
+CMD ["cat", "uv.lock"]
 
 # ----
 
@@ -206,13 +230,3 @@ COPY --from=proxy-frontend --chown="$UID:$GID" \
 	"$HOME/frontend" frontend
 
 ENV PATH="$HOME/backend/.venv/bin:$PATH"
-
-# ----
-
-FROM backend AS update-uv-lock
-
-RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
-	uv lock --upgrade
-
-ENTRYPOINT ["cat", "uv.lock"]

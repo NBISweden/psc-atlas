@@ -65,11 +65,12 @@ image available in a registry.
   - `frontend`
     - `frontend-dev` (`./frontend` context)
     - `frontend-prod` (`./` context)
+    - `frontend-update-lock (`./frontend` context)
 - `python:3.12-alpine`
   - `backend`
     - `backend-dev` (`./backend` context)
     - `backend-prod` (`./` context)
-    - `update-uv-lock` (`./backend` context)
+    - `backend-update-lock` (`./backend` context)
 - `alpine:3.22`
   - `proxy` (`./` context)
     - `proxy-dev`

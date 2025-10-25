@@ -4,13 +4,14 @@ set -x
 
 docker build \
 	-f ../Dockerfile \
-	-t update-uv-lock \
+	--target backend-update-lock \
+	-t backend-update-lock \
 	--build-arg UID="$(id -u)" \
 	--build-arg GID="$(id -g)" \
 	. &&
 docker run \
 	--rm \
-	update-uv-lock >uv.lock.new
+	backend-update-lock >uv.lock.new
 
 if ! cmp -s uv.lock.new uv.lock
 then
