@@ -57,7 +57,7 @@ RUN --mount=type=cache,uid="$UID",target="$npm_config_cache" \
 	    npm run build
 
 # Note: The exported static files produced by this build step are copied
-# in the "proxy-frontend" stage.
+# in the "proxy-prod" stage.
 
 # ----
 
@@ -131,7 +131,7 @@ RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
 RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv run python -m build
 
-# Note: The built wheel file is copied in the "proxy-backend" stage.
+# Note: The built wheel file is copied in the "proxy-prod" stage.
 
 # ----
 
@@ -180,19 +180,19 @@ ENV SERVICE_MODE=development
 
 # ----
 
-FROM proxy AS proxy-frontend
+FROM proxy AS proxy-prod
+
+ENV SERVICE_MODE=production
+
+# Copy frontend static files.
 
 WORKDIR "$HOME/frontend"
-
-COPY --chown="$UID:$GID" \
-	frontend/start-script.sh .
 
 COPY --from=frontend-prod --chown="$UID:$GID" \
 	"$HOME"/frontend/out .
 
-# ----
-
-FROM proxy AS proxy-backend
+# Copy backend start script and wheel file, and install backend
+# in virtual environment.
 
 ENV UV_CACHE_DIR="$HOME/.cache/uv"
 ENV MYPY_CACHE_DIR="$HOME/.cache/mypy"
@@ -217,16 +217,6 @@ RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
 
 RUN rm /tmp/psc_atlas-*.whl
 
-# ----
-
-FROM proxy AS proxy-prod
-
-ENV SERVICE_MODE=production
-
-COPY --from=proxy-backend --chown="$UID:$GID" \
-	"$HOME/backend" backend
-
-COPY --from=proxy-frontend --chown="$UID:$GID" \
-	"$HOME/frontend" frontend
-
 ENV PATH="$HOME/backend/.venv/bin:$PATH"
+
+WORKDIR "$HOME"

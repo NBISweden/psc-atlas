@@ -83,9 +83,5 @@ image available in a registry.
 - `alpine:3.22`
   - `proxy` (`./` context)
     - `proxy-dev`
-    - `proxy-frontend`
-      - copy from `frontend-prod`
-    - `proxy-backend`
-      - copy from `backend-prod`
     - `proxy-prod`
-      - copy from `proxy-frontend` and `proxy-backend`
+      - copy from `frontend-prod` and `backend-prod`
