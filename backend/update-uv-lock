@@ -1,7 +1,5 @@
 #!/bin/sh -
 
-set -x
-
 docker build \
 	-f ../Dockerfile \
 	--target backend-update-lock \
