@@ -25,7 +25,7 @@ CMD ["./start-script.sh"]
 
 # ----
 
-FROM frontend AS frontend-prod
+FROM frontend AS frontend-build
 
 ENV SERVICE_MODE=production
 
@@ -107,7 +107,7 @@ CMD ["./start-script.sh"]
 
 # ----
 
-FROM backend AS backend-prod
+FROM backend AS backend-build
 
 ENV SERVICE_MODE=production
 
@@ -182,7 +182,7 @@ ENV SERVICE_MODE=production
 
 WORKDIR "$HOME/frontend"
 
-COPY --from=frontend-prod --chown="$UID:$GID" \
+COPY --from=frontend-build --chown="$UID:$GID" \
 	"$HOME"/frontend/out .
 
 # Copy backend start script and wheel file, and install backend
@@ -199,7 +199,7 @@ WORKDIR "$HOME/backend"
 COPY --chown="$UID:$GID" \
 	backend/start-script.sh .
 
-COPY --from=backend-prod --chown="$UID:$GID" \
+COPY --from=backend-build --chown="$UID:$GID" \
 	"$HOME"/backend/dist/psc_atlas-*.whl  \
 	/tmp
 
