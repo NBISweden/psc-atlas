@@ -3,7 +3,7 @@ FROM node:24-alpine AS frontend
 ARG UID=1000
 ARG GID=1000
 
-RUN --mount=type=cache,target=/var/cache/apk \
+RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
 	apk --cache-dir=/var/cache/apk add \
 		dumb-init
 
@@ -33,7 +33,7 @@ ENV NODE_ENV=production
 
 COPY --chown="$UID:$GID" frontend/package*.json .
 
-RUN --mount=type=cache,uid="$UID",target="$npm_config_cache" \
+RUN --mount=type=cache,id=npm-cache,uid="$UID",target="$npm_config_cache" \
 	npm ci --omit=dev
 
 COPY --chown="$UID:$GID" frontend/tsconfig.json .
@@ -44,8 +44,8 @@ COPY --chown="$UID:$GID" frontend/src src
 COPY --chown="$UID:$GID" frontend/public public
 
 RUN mkdir .next
-RUN --mount=type=cache,uid="$UID",target="$npm_config_cache" \
-    --mount=type=cache,uid="$UID",target=".next/cache" \
+RUN --mount=type=cache,id=npm-cache,uid="$UID",target="$npm_config_cache" \
+    --mount=type=cache,id=next-cache,uid="$UID",target=".next/cache" \
 	    npm run build
 
 # Note: The exported static files produced by this build step are copied
@@ -64,7 +64,7 @@ ENV NODE_ENV=development
 FROM frontend-dev AS frontend-update-lock
 
 RUN --mount=type=bind,source=package.json,target=./package.json \
-    --mount=type=cache,uid="$UID",target="$npm_config_cache" \
+    --mount=type=cache,id=npm-cache,uid="$UID",target="$npm_config_cache" \
 	npm install \
 		--package-lock-only \
 		--ignore-scripts \
@@ -80,7 +80,7 @@ FROM python:3.12-alpine AS backend
 ARG UID=1000
 ARG GID=1000
 
-RUN --mount=type=cache,target=/var/cache/apk \
+RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
 	apk --cache-dir=/var/cache/apk add \
 		dumb-init
 
@@ -96,7 +96,7 @@ USER "$UID:$GID"
 
 WORKDIR "$HOME/backend"
 
-RUN --mount=type=cache,uid="$UID",target="$PIP_CACHE_DIR" \
+RUN --mount=type=cache,id=pip-cache,uid="$UID",target="$PIP_CACHE_DIR" \
 	python -m pip install \
 		uv
 
@@ -113,14 +113,14 @@ ENV SERVICE_MODE=production
 
 COPY --chown="$UID:$GID" backend .
 
-RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
+RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv sync --frozen
 
-RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
-    --mount=type=cache,uid="$UID",target="$MYPY_CACHE_DIR" \
+RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
+    --mount=type=cache,id=mypy-cache,uid="$UID",target="$MYPY_CACHE_DIR" \
 	uv run mypy .
 
-RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
+RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv run python -m build
 
 # Note: The built wheel file is copied in the "proxy-prod" stage.
@@ -138,7 +138,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 FROM backend-dev AS backend-update-lock
 
 RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
+    --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv lock --upgrade
 
 CMD ["cat", "uv.lock"]
@@ -152,7 +152,7 @@ ARG GID=1000
 
 ENV HOME=/home/psc-atlas
 
-RUN --mount=type=cache,target=/var/cache/apk \
+RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
 	apk --cache-dir=/var/cache/apk add \
 		caddy \
 		dumb-init \
@@ -203,10 +203,10 @@ COPY --from=backend-prod --chown="$UID:$GID" \
 	"$HOME"/backend/dist/psc_atlas-*.whl  \
 	/tmp
 
-RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
+RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv venv .venv
 
-RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
+RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv pip install /tmp/psc_atlas-*.whl
 
 RUN rm /tmp/psc_atlas-*.whl
