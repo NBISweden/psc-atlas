@@ -72,16 +72,16 @@ image available in a registry.
 
 - `node:24-alpine`
   - `frontend`
-    - `frontend-dev` (`./frontend` context)
     - `frontend-prod` (`./` context)
-    - `frontend-update-lock` (`./frontend` context)
+    - `frontend-dev` (`./frontend` context)
+      - `frontend-update-lock` (`./frontend` context)
 - `python:3.12-alpine`
   - `backend`
-    - `backend-dev` (`./backend` context)
     - `backend-prod` (`./` context)
-    - `backend-update-lock` (`./backend` context)
+    - `backend-dev` (`./backend` context)
+      - `backend-update-lock` (`./backend` context)
 - `alpine:3.22`
   - `proxy` (`./` context)
-    - `proxy-dev`
     - `proxy-prod`
       - copy from `frontend-prod` and `backend-prod`
+    - `proxy-dev`

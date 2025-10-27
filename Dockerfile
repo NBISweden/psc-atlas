@@ -25,14 +25,6 @@ CMD ["./start-script.sh"]
 
 # ----
 
-FROM frontend AS frontend-dev
-
-ENV SERVICE_MODE=development
-
-ENV NODE_ENV=development
-
-# ----
-
 FROM frontend AS frontend-prod
 
 ENV SERVICE_MODE=production
@@ -61,7 +53,15 @@ RUN --mount=type=cache,uid="$UID",target="$npm_config_cache" \
 
 # ----
 
-FROM frontend AS frontend-update-lock
+FROM frontend AS frontend-dev
+
+ENV SERVICE_MODE=development
+
+ENV NODE_ENV=development
+
+# ----
+
+FROM frontend-dev AS frontend-update-lock
 
 RUN --mount=type=bind,source=package.json,target=./package.json \
     --mount=type=cache,uid="$UID",target="$npm_config_cache" \
@@ -107,14 +107,6 @@ CMD ["./start-script.sh"]
 
 # ----
 
-FROM backend AS backend-dev
-
-ENV SERVICE_MODE=development
-
-ENV PYTHONDONTWRITEBYTECODE=1
-
-# ----
-
 FROM backend AS backend-prod
 
 ENV SERVICE_MODE=production
@@ -135,7 +127,15 @@ RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
 
 # ----
 
-FROM backend AS backend-update-lock
+FROM backend AS backend-dev
+
+ENV SERVICE_MODE=development
+
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# ----
+
+FROM backend-dev AS backend-update-lock
 
 RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
@@ -171,12 +171,6 @@ COPY --chown="$UID:$GID" start-script.sh .
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["./start-script.sh"]
-
-# ----
-
-FROM proxy AS proxy-dev
-
-ENV SERVICE_MODE=development
 
 # ----
 
@@ -218,5 +212,11 @@ RUN --mount=type=cache,uid="$UID",target="$UV_CACHE_DIR" \
 RUN rm /tmp/psc_atlas-*.whl
 
 ENV PATH="$HOME/backend/.venv/bin:$PATH"
+
+# ----
+
+FROM proxy AS proxy-dev
+
+ENV SERVICE_MODE=development
 
 WORKDIR "$HOME"
