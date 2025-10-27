@@ -1,17 +1,28 @@
 #!/bin/sh -
 
 docker build \
-	-f ../Dockerfile \
-	--target frontend-update-lock \
-	-t frontend-update-lock \
+	--file ../Dockerfile \
+	--target frontend-dev \
+	--tag frontend-update-lock \
 	--build-arg UID="$(id -u)" \
 	--build-arg GID="$(id -g)" \
 	. &&
 docker run \
 	--rm \
-	frontend-update-lock >package-lock.json.new
+	--volume './package.json:/tmp/package.json:ro' \
+	--workdir /tmp \
+	frontend-update-lock \
+	sh -c '
+		npm install \
+			--package-lock-only \
+			--ignore-scripts \
+			--no-audit \
+			--fund=false >/dev/null &&
+		cat package-lock.json
+	' >package-lock.json.new
 
-if ! cmp -s package-lock.json.new package-lock.json
+if [ -s package-lock.json.new ] &&
+   ! cmp -s package-lock.json.new package-lock.json
 then
 	mv package-lock.json.new package-lock.json
 	echo 'Package lock updated'

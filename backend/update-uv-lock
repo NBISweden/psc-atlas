@@ -1,15 +1,21 @@
 #!/bin/sh -
 
 docker build \
-	-f ../Dockerfile \
-	--target backend-update-lock \
-	-t backend-update-lock \
+	--file ../Dockerfile \
+	--target backend-dev \
+	--tag backend-update-lock \
 	--build-arg UID="$(id -u)" \
 	--build-arg GID="$(id -g)" \
 	. &&
 docker run \
 	--rm \
-	backend-update-lock >uv.lock.new
+	--volume './pyproject.toml:/tmp/pyproject.toml:ro' \
+	--workdir /tmp \
+	backend-update-lock \
+	sh -c '
+		uv sync --upgrade &&
+		cat uv.lock
+	' >uv.lock.new
 
 if ! cmp -s uv.lock.new uv.lock
 then

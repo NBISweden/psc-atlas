@@ -61,20 +61,6 @@ ENV NODE_ENV=development
 
 # ----
 
-FROM frontend-dev AS frontend-update-lock
-
-RUN --mount=type=bind,source=package.json,target=./package.json \
-    --mount=type=cache,id=npm-cache,uid="$UID",target="$npm_config_cache" \
-	npm install \
-		--package-lock-only \
-		--ignore-scripts \
-		--no-audit \
-		--fund=false
-
-CMD ["cat", "package-lock.json"]
-
-# ----
-
 FROM python:3.12-alpine AS backend
 
 ARG UID=1000
@@ -132,16 +118,6 @@ FROM backend AS backend-dev
 ENV SERVICE_MODE=development
 
 ENV PYTHONDONTWRITEBYTECODE=1
-
-# ----
-
-FROM backend-dev AS backend-update-lock
-
-RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
-	uv lock --upgrade
-
-CMD ["cat", "uv.lock"]
 
 # ----
 
