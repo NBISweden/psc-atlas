@@ -7,6 +7,14 @@ This project assumes that it will be deployed as something similar to a
 "production environment" is therefore restricted to using only a single
 Docker container, with a single persistent volume, and no bind mounts.
 
+### Exposed endpoints
+
+There are two exposed endpoints for the site, the frontend and the
+backend API, which can be found as follows:
+
+- Backend API: http://localhost:3320/api/v1/
+- Frontend: http://localhost:3320/
+
 ## Development and production environments
 
 The `docker-compose.yml` file defines the production environment, while
@@ -16,43 +24,62 @@ environment.
 Thus, to start the production environment, use:
 
 ``` sh
-docker compose up
+./compose-prod.sh up --build
 ```
+
+(Skip `--build` if you use pre-built Docker images.)
 
 To start the development environment, use:
 
 ``` sh
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+./compose-dev.sh up --build
 ```
 
-There is also a convenience script, `docker-compose.sh`, that can be
-used as a wrapper for `docker compose` commands addressing the
-development environment:
+The two convenience scripts `compose-prod.sh` and `compose-dev.sh` are
+used as wrappers for `docker compose` commands addressing the respective
+environments.
+
+For example:
 
 ``` sh
-./docker-compose.sh {up|down|...}
+./compose-prod.sh {up|down|logs|...}
 ```
-
-### Entrypoints
-
-There are two main entrypoints for the site in the docker setup. The 
-static fronted and the backend API which can be found as follows:
-
-- Backend API: http://localhost:3320/api/v1/
-- Frontend: http://localhost:3320/
-
 
 ### Differences between development and production environments
 
 The main differences between the two environments are:
 
-- There are currently no effective differences between the two
-  environments, but the `docker-compose.yml` Compose file uses the
-  `prod` target of the `Dockerfile`, while the `docker-compose.dev.yml`
-  Compose file uses the `dev` target of the `Dockerfile`. These two
-  targets are currently identical (and do nothing).
+- In the development environment, the frontend and backend code is
+  mounted as bind mounts, allowing for live code changes without
+  rebuilding the Docker images. In production, the code is copied into
+  the images at build time.
+
+- In the development environment, the project runs in three distinct
+  containers: one for the frontend, one for the backend, and one for the
+  reverse proxy. The reverse proxy is the only container exposed to the
+  outside world.
+
+  In production, what is logically the proxy, serves the frontend as
+  static files and proxies API requests to the backend, all within a
+  single container.
 
 The production environment should ideally be pulling a ready-made image
 from a registry and only be building the image locally for testing
 purposes. This is not yet implemented as there is currently no built
 image available in a registry.
+
+## Docker build structure
+
+- `node:24-alpine`
+  - `frontend`
+    - `frontend-build` (`./` context)
+    - `frontend-dev` (`./frontend` context)
+- `python:3.12-alpine`
+  - `backend`
+    - `backend-build` (`./` context)
+    - `backend-dev` (`./backend` context)
+- `alpine:3.22`
+  - `proxy` (`./` context)
+    - `proxy-prod`
+      - copy from `frontend-build` and `backend-build`
+    - `proxy-dev`

@@ -1,10 +1,10 @@
 # Serve static export in production, proxy to development server in
 # development.
 
-:80
+:8080
 
 # Health endpoint
-handle {$CADDY_API_ROOT}/health {
+handle /api/health {
 	respond "{\"status\":\"ok\"}" 200
 }
 
@@ -15,15 +15,19 @@ handle {$CADDY_API_ROOT}/health {
 	expression "{$SERVICE_MODE}" == "production"
 }
 
-handle {$CADDY_API_ROOT}/* {
-	reverse_proxy localhost:8000
-}
-
 handle @dev {
-	reverse_proxy psc-atlas-frontend:3000
+	handle_path /api/* {
+		reverse_proxy backend:8000
+	}
+
+	reverse_proxy frontend:3000
 }
 
 handle @prod {
+	handle_path /api/* {
+		reverse_proxy localhost:8000
+	}
+
 	root * ./frontend
 	file_server
 }

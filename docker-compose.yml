@@ -2,14 +2,18 @@ name: psc-atlas
 
 services:
 
-  psc-atlas:
+  proxy:
+    container_name: psc-atlas
     build:
       context: .
-      target: prod
+      target: proxy-prod
+      args:
+        UID: "${UID:-1000}"
+        GID: "${GID:-1000}"
     volumes:
       - project-vol:/home/psc-atlas/vol
     ports:
-      - 127.0.0.1:3320:80
+      - 127.0.0.1:3320:8080
 
 volumes:
   project-vol:
