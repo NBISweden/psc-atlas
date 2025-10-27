@@ -1,7 +1,6 @@
 services:
 
   proxy:
-    container_name: psc-atlas
     build:
       target: proxy-dev
       args:
@@ -9,7 +8,6 @@ services:
         GID: "${GID:-1000}"
 
   backend:
-    container_name: backend
     build:
       context: backend
       dockerfile: ../Dockerfile
@@ -21,7 +19,6 @@ services:
       - ./backend:/home/psc-atlas/backend
 
   frontend:
-    container_name: frontend
     build:
       context: frontend
       dockerfile: ../Dockerfile

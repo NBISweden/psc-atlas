@@ -3,7 +3,6 @@ name: psc-atlas
 services:
 
   proxy:
-    container_name: psc-atlas
     build:
       context: .
       target: proxy-prod
