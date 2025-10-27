@@ -189,10 +189,10 @@ RUN rm /tmp/psc_atlas-*.whl
 
 ENV PATH="$HOME/backend/.venv/bin:$PATH"
 
+WORKDIR "$HOME"
+
 # ----
 
 FROM proxy AS proxy-dev
 
 ENV SERVICE_MODE=development
-
-WORKDIR "$HOME"
