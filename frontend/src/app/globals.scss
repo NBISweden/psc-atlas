@@ -125,3 +125,24 @@ h6 {
   text-transform: uppercase;
   letter-spacing: 0.1rem;
 }
+
+// Overriding some of Bootstrap's checkbox styles
+.form-check-input {
+  &:checked {
+    background-color: var(--primary-text);
+    border-color: var(--primary-text);
+  }
+  &:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
+  }
+}
+
+// Overriding some of Bootstrap's select styles
+.form-select {
+  color: var(--primary-text);
+  &:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
+  }
+}
