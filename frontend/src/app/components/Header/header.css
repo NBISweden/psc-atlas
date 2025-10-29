@@ -1,0 +1,12 @@
+header {
+  border-bottom: 5px solid var(--accent-color);
+}
+
+header a {
+  font-family: var(--heading-font);
+}
+
+header strong {
+  color: var(--primary-text);
+  font-weight: 600;
+}
