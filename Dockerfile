@@ -191,6 +191,8 @@ ENV PATH="$HOME/backend/.venv/bin:$PATH"
 
 WORKDIR "$HOME"
 
+RUN find . -depth ! -type l -exec chmod a-w,go= {} +
+
 # ----
 
 FROM proxy AS proxy-dev
