@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
+const path = require("path");
+
 const nextConfig: NextConfig = {
-  output: 'export',
+  sassOptions: {
+    silenceDeprecations: ["color-functions", "global-builtin", "import"],
+  },
+  output: "export",
   trailingSlash: true,
 };
 

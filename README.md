@@ -23,7 +23,7 @@ environment.
 
 Thus, to start the production environment, use:
 
-``` sh
+```sh
 ./compose-prod.sh up --build
 ```
 
@@ -31,7 +31,7 @@ Thus, to start the production environment, use:
 
 To start the development environment, use:
 
-``` sh
+```sh
 ./compose-dev.sh up --build
 ```
 
@@ -41,7 +41,7 @@ environments.
 
 For example:
 
-``` sh
+```sh
 ./compose-prod.sh {up|down|logs|...}
 ```
 
@@ -67,6 +67,27 @@ The production environment should ideally be pulling a ready-made image
 from a registry and only be building the image locally for testing
 purposes. This is not yet implemented as there is currently no built
 image available in a registry.
+
+## Adding dependencies
+
+To add a package within the backend, run
+
+```
+uv add [package name]
+```
+
+then, inside the `backend` directory, run
+
+```
+./update-uv-lock
+```
+
+To add a package within the frontend, add it first to the `package.json` file.
+Then move to the `frontend` directory and run
+
+```
+./update-package-lock
+```
 
 ## Docker build structure
 
