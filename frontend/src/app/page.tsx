@@ -1,6 +1,3 @@
-import styles from "./page.module.css";
-import "./globals.scss";
-
 export default function Home() {
   return (
     <section>
