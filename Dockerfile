@@ -191,6 +191,15 @@ ENV PATH="$HOME/backend/.venv/bin:$PATH"
 
 WORKDIR "$HOME"
 
+# Remove write permissions on everything, and remove *all* permissions
+# for "group" and "others" ("chmod a-w,go=").  The "find" command is
+# doing this in depth-first order ("-depth") to avoid issues with
+# directories losing write permissions before their contents are
+# processed.  Symbolic links are excluded ("! -type l") to avoid
+# "permission denied" errors (changing permissions on symbolic links is
+# not supported on many systems).
+RUN find . -depth ! -type l -exec chmod a-w,go= {} +
+
 # ----
 
 FROM proxy AS proxy-dev
