@@ -6,10 +6,10 @@ export default function Home() {
     <section>
       <h1>PSC Atlas</h1>
       <p>Hello world!</p>
-      <button type="button" className="btn btn-accent">
+      <button type="button" className="btn btn-primary">
         Button test
       </button>
-      <button type="button" className="btn btn-outline-accent">
+      <button type="button" className="btn btn-outline-primary">
         Outline test
       </button>
       <div className="form-check">

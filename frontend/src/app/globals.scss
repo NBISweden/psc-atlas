@@ -12,6 +12,7 @@ $btn-font-weight: 700;
 $btn-padding-x: 1.25rem;
 $btn-padding-y: 0.5rem;
 $btn-active-color: #fff;
+$primary: #f56a6a;
 
 // 3. Include remainder of required Bootstrap stylesheets (including any separate color mode stylesheets)
 @import "../../node_modules/bootstrap/scss/variables";
@@ -28,13 +29,6 @@ $custom-spacers: (
 
 // Merge the maps
 $spacers: map-merge($spacers, $custom-spacers);
-
-//Add custom colors
-$custom-colors: (
-  "accent": #f56a6a,
-);
-
-$theme-colors: map-merge($theme-colors, $custom-colors);
 
 // 5. Include remainder of required parts
 @import "../../node_modules/bootstrap/scss/maps";
@@ -102,28 +96,24 @@ h6 {
 }
 
 // Overriding some of Bootstrap's button styles
-.btn-accent,
-.btn-accent:hover {
-  color: #fff;
+.btn {
   text-transform: uppercase;
   letter-spacing: 0.1rem;
+}
+
+.btn-primary,
+.btn-primary:hover {
+  color: #fff;
 
   &:active {
     color: #fff;
   }
 }
 
-.btn-outline-accent {
-  text-transform: uppercase;
-  letter-spacing: 0.1rem;
-}
-
-.btn-outline-accent:hover,
-.btn-outline-accent:not(:disabled):not(.disabled):active {
+.btn-outline-primary:hover,
+.btn-outline-primary:not(:disabled):not(.disabled):active {
   background-color: rgba(245, 106, 106, 0.05);
   color: var(--accent-color);
-  text-transform: uppercase;
-  letter-spacing: 0.1rem;
 }
 
 // Overriding some of Bootstrap's checkbox styles
