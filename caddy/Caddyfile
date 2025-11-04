@@ -4,7 +4,7 @@
 :8080
 
 # Health endpoint
-handle /api/health {
+handle /health {
 	respond "{\"status\":\"ok\"}" 200
 }
 
