@@ -1,5 +1,7 @@
 #!/bin/sh -
 
+cp uv.lock uv.lock.old
+
 docker build \
 	--file ../Dockerfile \
 	--target backend-dev \
@@ -9,19 +11,15 @@ docker build \
 	. &&
 docker run \
 	--rm \
-	--volume './pyproject.toml:/tmp/pyproject.toml:ro' \
-	--workdir /tmp \
+	--volume './:/home/psc-atlas/backend' \
 	backend-update-lock \
-	sh -c '
-		uv sync --upgrade &&
-		cat uv.lock
-	' >uv.lock.new
+	uv sync --upgrade
 
-if ! cmp -s uv.lock.new uv.lock
+if ! cmp -s uv.lock uv.lock.old
 then
-	mv uv.lock.new uv.lock
-		echo 'UV lock updated'
-	else
-		rm uv.lock.new
+	echo 'UV lock updated'
+else
 	echo 'UV lock did not need updating'
 fi
+
+rm -f uv.lock.old
