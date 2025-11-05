@@ -1,7 +1,17 @@
 import csv
+
 from datetime import datetime
 from pathlib import Path
-from psc_atlas.models import Sample, Measurement, YesNo, HiLo
+
+from psc_atlas.models import YesNo, HiLo
+from psc_atlas.models import Sample, Measurement, Variable
+from psc_atlas.models import (
+    BaseStats,
+    MetaboliteStats,
+    MiRNAStats,
+    ProteinStats,
+)
+
 from psc_atlas.session import get_session
 
 
@@ -51,7 +61,17 @@ def parse_string(value) -> str | None:
             return value
 
 
-def load_samples(file_path: Path):
+def parse_float(value) -> float | None:
+    """Convert string to float, or None for NA."""
+    value = value.strip()
+    match value.lower():
+        case "na":
+            return None
+        case _:
+            return float(value)
+
+
+def load_data_file(file_path: Path):
     """
     Load data from CSV file.
 
@@ -61,11 +81,6 @@ def load_samples(file_path: Path):
     Note that the "type" of the data is encoded in the filename, e.g.,
     "data_metabolites_PSC.csv" (for metabolite data).
     """
-
-    file_path = Path(file_path)
-
-    if not file_path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
 
     data_type = file_path.stem.split("_")[1]  # Extract type from filename
 
@@ -86,6 +101,17 @@ def load_samples(file_path: Path):
         measurement_cols = set(reader.fieldnames) - sample_cols
 
         with get_session() as session:
+            variable_cache = {}
+            for name in measurement_cols:
+                variable = (
+                    session.query(Variable).filter_by(name=name).first()
+                )
+                if not variable:
+                    variable = Variable(name=name)
+                    session.add(variable)
+                    session.flush()  # To get variable.id
+                variable_cache[name] = variable.id
+
             for row in reader:
                 sample = Sample(
                     type=data_type,
@@ -104,13 +130,117 @@ def load_samples(file_path: Path):
                 for name in measurement_cols:
                     measurement = Measurement(
                         sample_id=sample.id,
-                        protein=name,
+                        variable_id=variable_cache[name],
                         value=float(row[name]),
                     )
                     session.add(measurement)
 
                 print(
                     f"Loaded sample {sample.pscid} with {len(measurement_cols)} measurements."
+                )
+            session.commit()
+
+
+def load_stats_file(file_path: Path):
+    """
+    Load statistics from CSV file.
+
+    Args:
+        file_path (Path): Path to the CSV file.
+
+    Note that the "type" of the stats is encoded in the filename, e.g.,
+    "stats_metabolites_CCA.csv" (for metabolite CCA stats).
+    """
+
+    stats_type = file_path.stem.split("_")[
+        1
+    ]  # "metabolites", "miRNA", "proteins"
+    stats_subtype = file_path.stem.split("_")[
+        2
+    ]  # "CCA", "IBD", "alp", "bilirubin", "fibrosis"
+
+    with file_path.open("r") as f:
+        reader = csv.DictReader(f)
+
+        with get_session() as session:
+            variable_cache = {}
+
+            for row in reader:
+                variable_name = row["Variable"]
+                variable = (
+                    session.query(Variable)
+                    .filter_by(name=variable_name)
+                    .first()
+                )
+                if not variable:
+                    variable = Variable(name=variable_name)
+                    session.add(variable)
+                    session.flush()  # To get variable.id
+                variable_cache[variable_name] = variable.id
+
+                base_stats = BaseStats(
+                    variable_id=variable_cache[variable_name],
+                    condition=stats_subtype,
+                    data_type=stats_type,
+                    fold_change=float(row["FoldChange"]),
+                    log2fc=parse_float(row["log2FC"]),
+                    p_value=parse_float(row["p_value"]),
+                    auc=float(row["AUC"]),
+                    adj_p_value=parse_float(row["adj_p_value"]),
+                )
+
+                match stats_subtype:
+                    case "CCA":
+                        median_group1 = float(row["median_noCCA"])
+                        median_group2 = float(row["median_CCA"])
+                    case "IBD":
+                        median_group1 = float(row["median_noIBD"])
+                        median_group2 = float(row["median_IBD"])
+                    case "alp":
+                        median_group1 = float(row["median_low_ALP"])
+                        median_group2 = float(row["median_high_ALP"])
+                    case "bilirubin":
+                        median_group1 = float(row["median_low_bilirubin"])
+                        median_group2 = float(row["median_high_bilirubin"])
+                    case "fibrosis":
+                        median_group1 = float(row["median_low_fibrosis"])
+                        median_group2 = float(row["median_high_fibrosis"])
+                    case _:
+                        raise ValueError(
+                            f"Unknown stats subtype: {stats_subtype}"
+                        )
+
+                base_stats.median_group1 = median_group1
+                base_stats.median_group2 = median_group2
+
+                session.add(base_stats)
+                session.flush()  # To get base_stats.id
+
+                match stats_type:
+                    case "metabolites":
+                        stats = MetaboliteStats(
+                            id=base_stats.id,
+                            biochemical=row["BIOCHEMICAL"],
+                            pubchem=parse_string(row["PUBCHEM"]),
+                            hmdb=parse_string(row["HMDB"]),
+                            super_pathway=row["SUPER PATHWAY"],
+                            sub_pathway=row["SUB PATHWAY"],
+                        )
+                    case "miRNA":
+                        stats = MiRNAStats(id=base_stats.id)
+                    case "proteins":
+                        stats = ProteinStats(
+                            id=base_stats.id,
+                            assay=row["Assay"],
+                            description=parse_string(row["description"]),
+                            uniprot_id=parse_string(row["Uniprot ID"]),
+                        )
+                    case _:
+                        raise ValueError(f"Unknown stats type: {stats_type}")
+
+                session.add(stats)
+                print(
+                    f"Added {stats_type} {stats_subtype} stats for variable {variable_name}."
                 )
             session.commit()
 
@@ -123,4 +253,21 @@ if __name__ == "__main__":
         sys.exit(1)
 
     csv_file_path = Path(sys.argv[1])
-    load_samples(csv_file_path)
+    if not csv_file_path.exists():
+        print(f"File not found: {csv_file_path}")
+        sys.exit(1)
+
+    # If the filename starts with "data_", load the data using
+    # load_data_file.  If the filename starts with "stats_", load the
+    # data using load_stats_file.
+
+    match csv_file_path.stem.split("_")[0]:
+        case "data":
+            load_data_file(csv_file_path)
+        case "stats":
+            load_stats_file(csv_file_path)
+        case _:
+            print(
+                "Invalid file type. Filename must start with 'data_' or 'stats_'."
+            )
+            sys.exit(1)
