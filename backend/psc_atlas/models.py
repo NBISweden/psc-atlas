@@ -4,7 +4,7 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
-from sqlalchemy import Enum, String, Date, Float
+from sqlalchemy import Enum, String, Date, Float, ForeignKey, UniqueConstraint
 
 from datetime import date
 from typing import List
@@ -30,15 +30,15 @@ class Sample(Base):
     __tablename__ = "samples"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    type: Mapped[str] = mapped_column(String(16), nullable=False)
-    pscid: Mapped[str] = mapped_column(String(16))
-    sampling_date: Mapped[date] = mapped_column(Date)
-    psc: Mapped[YesNo] = mapped_column(Enum(YesNo), nullable=False)
-    cca: Mapped[YesNo] = mapped_column(Enum(YesNo))
-    ibd: Mapped[YesNo] = mapped_column(Enum(YesNo))
-    fibrosis: Mapped[HiLo] = mapped_column(Enum(HiLo))
-    bilirubin: Mapped[HiLo] = mapped_column(Enum(HiLo))
-    alp: Mapped[HiLo] = mapped_column(Enum(HiLo))
+    type: Mapped[str] = mapped_column(String(16))
+    pscid: Mapped[str] = mapped_column(String(16), nullable=True)
+    sampling_date: Mapped[date] = mapped_column(Date, nullable=True)
+    psc: Mapped[YesNo] = mapped_column(Enum(YesNo), nullable=True)
+    cca: Mapped[YesNo] = mapped_column(Enum(YesNo), nullable=True)
+    ibd: Mapped[YesNo] = mapped_column(Enum(YesNo), nullable=True)
+    fibrosis: Mapped[HiLo] = mapped_column(Enum(HiLo), nullable=True)
+    bilirubin: Mapped[HiLo] = mapped_column(Enum(HiLo), nullable=True)
+    alp: Mapped[HiLo] = mapped_column(Enum(HiLo), nullable=True)
 
     measurements: Mapped[List["Measurement"]] = relationship(
         "Measurement", back_populates="sample", cascade="all, delete-orphan"
