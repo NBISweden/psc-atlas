@@ -53,6 +53,7 @@ $spacers: map-merge($spacers, $custom-spacers);
   --secondary-background: #f5f6f7;
   --primary-text: #3d4449;
   --secondary-text: #7f888f;
+  --light-grey: #d2d7d9;
   --accent-color: #f56a6a;
   --accent-color-hover: #f67878;
   --heading-font: "Roboto Slab", serif;
@@ -67,10 +68,9 @@ body {
 
 body {
   margin: 0;
-  padding: 0;
   color: var(--secondary-text);
   font-family: var(--canvas-font);
-  padding: 0 1rem 0 1rem;
+  padding: 0 1rem 0 0;
 }
 
 * {
