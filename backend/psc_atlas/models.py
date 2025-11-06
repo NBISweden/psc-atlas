@@ -110,11 +110,13 @@ class BaseStats(Base):
 
     # Relationships
     metabolite_details: Mapped["MetaboliteStats"] = relationship(
-        back_populates="base"
+        back_populates="base", uselist=False
     )
-    mirna_details: Mapped["MiRNAStats"] = relationship(back_populates="base")
+    mirna_details: Mapped["MiRNAStats"] = relationship(
+        back_populates="base", uselist=False
+    )
     protein_details: Mapped["ProteinStats"] = relationship(
-        back_populates="base"
+        back_populates="base", uselist=False
     )
 
     __table_args__ = (UniqueConstraint("variable_id", "condition"),)
