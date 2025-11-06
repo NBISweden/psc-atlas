@@ -117,9 +117,7 @@ class BaseStats(Base):
         back_populates="base"
     )
 
-    __table_args__ = (
-        UniqueConstraint("variable_id", "condition", "data_type"),
-    )
+    __table_args__ = (UniqueConstraint("variable_id", "condition"),)
 
 
 class MetaboliteStats(Base):
