@@ -115,19 +115,34 @@ def load_data_file(file_path: Path):
                 variable_cache[name] = variable.id
 
             for row in reader:
-                sample = Sample(
-                    type=data_type,
-                    pscid=parse_string(row["PSCID"]),
-                    sampling_date=parse_date(row["sampling_date"]),
-                    psc=parse_yes_no(row["PSC"]),
-                    cca=parse_yes_no(row["CCA"]),
-                    ibd=parse_yes_no(row["IBD"]),
-                    fibrosis=parse_hi_lo(row["Fibrosis"]),
-                    bilirubin=parse_hi_lo(row["Bilirubin"]),
-                    alp=parse_hi_lo(row["ALP"]),
-                )
-                session.add(sample)
-                session.flush()  # To get sample.id
+                # Create savepoint for IntegrityError handling.
+                savepoint = session.begin_nested()
+
+                try:
+                    sample = Sample(
+                        type=data_type,
+                        pscid=parse_string(row["PSCID"]),
+                        sampling_date=parse_date(row["sampling_date"]),
+                        psc=parse_yes_no(row["PSC"]),
+                        cca=parse_yes_no(row["CCA"]),
+                        ibd=parse_yes_no(row["IBD"]),
+                        fibrosis=parse_hi_lo(row["Fibrosis"]),
+                        bilirubin=parse_hi_lo(row["Bilirubin"]),
+                        alp=parse_hi_lo(row["ALP"]),
+                    )
+                    session.add(sample)
+                    session.flush()  # To get sample.id
+
+                    savepoint.commit()
+
+                except IntegrityError:
+                    # Rollback to savepoint on error (e.g., duplicate
+                    # (type, pscid)).
+                    savepoint.rollback()
+                    print(
+                        f"*** Skipping duplicate sample entry for PSCID {row['PSCID']} of type {data_type}."
+                    )
+                    continue
 
                 for name in measurement_cols:
                     measurement = Measurement(
@@ -157,7 +172,7 @@ def load_stats_file(file_path: Path):
     stats_type = file_path.stem.split("_")[
         1
     ]  # "metabolites", "miRNA", "proteins"
-    stats_subtype = file_path.stem.split("_")[
+    stats_condition = file_path.stem.split("_")[
         2
     ]  # "CCA", "IBD", "alp", "bilirubin", "fibrosis"
 
@@ -181,15 +196,12 @@ def load_stats_file(file_path: Path):
                 variable_cache[variable_name] = variable.id
 
                 # Create savepoint for IntegrityError handling.
-                # Since we have seen duplicate variables in the stats files,
-                # we will skip duplicates.
                 savepoint = session.begin_nested()
 
                 try:
                     base_stats = BaseStats(
                         variable_id=variable_cache[variable_name],
-                        condition=stats_subtype,
-                        data_type=stats_type,
+                        condition=stats_condition,
                         fold_change=float(row["FoldChange"]),
                         log2fc=parse_float(row["log2FC"]),
                         p_value=parse_float(row["p_value"]),
@@ -197,7 +209,7 @@ def load_stats_file(file_path: Path):
                         adj_p_value=parse_float(row["adj_p_value"]),
                     )
 
-                    match stats_subtype:
+                    match stats_condition:
                         case "CCA":
                             median_group1 = float(row["median_noCCA"])
                             median_group2 = float(row["median_CCA"])
@@ -217,7 +229,7 @@ def load_stats_file(file_path: Path):
                             median_group2 = float(row["median_high_fibrosis"])
                         case _:
                             raise ValueError(
-                                f"Unknown stats subtype: {stats_subtype}"
+                                f"Unknown stats condition: {stats_condition}"
                             )
 
                     base_stats.median_group1 = median_group1
@@ -258,14 +270,15 @@ def load_stats_file(file_path: Path):
                     savepoint.commit()
 
                     print(
-                        f"Added {stats_type} {stats_subtype} stats for variable {variable_name}."
+                        f"Added {stats_type} {stats_condition} stats for variable {variable_name}."
                     )
 
                 except IntegrityError:
-                    # Rollback to savepoint on error (e.g., duplicate entry).
+                    # Rollback to savepoint on error (e.g., duplicate
+                    # (variable_id, condition)).
                     savepoint.rollback()
                     print(
-                        f"*** Skipping duplicate stats entry for variable {variable_name}."
+                        f"*** Skipping duplicate stats entry for variable {variable_name} and condition {stats_condition}."
                     )
 
             session.commit()
