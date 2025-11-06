@@ -3,6 +3,8 @@ import csv
 from datetime import datetime
 from pathlib import Path
 
+from sqlalchemy.exc import IntegrityError
+
 from psc_atlas.models import YesNo, HiLo
 from psc_atlas.models import Sample, Measurement, Variable
 from psc_atlas.models import (
@@ -178,72 +180,94 @@ def load_stats_file(file_path: Path):
                     session.flush()  # To get variable.id
                 variable_cache[variable_name] = variable.id
 
-                base_stats = BaseStats(
-                    variable_id=variable_cache[variable_name],
-                    condition=stats_subtype,
-                    data_type=stats_type,
-                    fold_change=float(row["FoldChange"]),
-                    log2fc=parse_float(row["log2FC"]),
-                    p_value=parse_float(row["p_value"]),
-                    auc=float(row["AUC"]),
-                    adj_p_value=parse_float(row["adj_p_value"]),
-                )
+                # Create savepoint for IntegrityError handling.
+                # Since we have seen duplicate variables in the stats files,
+                # we will skip duplicates.
+                savepoint = session.begin_nested()
 
-                match stats_subtype:
-                    case "CCA":
-                        median_group1 = float(row["median_noCCA"])
-                        median_group2 = float(row["median_CCA"])
-                    case "IBD":
-                        median_group1 = float(row["median_noIBD"])
-                        median_group2 = float(row["median_IBD"])
-                    case "alp":
-                        median_group1 = float(row["median_low_ALP"])
-                        median_group2 = float(row["median_high_ALP"])
-                    case "bilirubin":
-                        median_group1 = float(row["median_low_bilirubin"])
-                        median_group2 = float(row["median_high_bilirubin"])
-                    case "fibrosis":
-                        median_group1 = float(row["median_low_fibrosis"])
-                        median_group2 = float(row["median_high_fibrosis"])
-                    case _:
-                        raise ValueError(
-                            f"Unknown stats subtype: {stats_subtype}"
-                        )
+                try:
+                    base_stats = BaseStats(
+                        variable_id=variable_cache[variable_name],
+                        condition=stats_subtype,
+                        data_type=stats_type,
+                        fold_change=float(row["FoldChange"]),
+                        log2fc=parse_float(row["log2FC"]),
+                        p_value=parse_float(row["p_value"]),
+                        auc=float(row["AUC"]),
+                        adj_p_value=parse_float(row["adj_p_value"]),
+                    )
 
-                base_stats.median_group1 = median_group1
-                base_stats.median_group2 = median_group2
+                    match stats_subtype:
+                        case "CCA":
+                            median_group1 = float(row["median_noCCA"])
+                            median_group2 = float(row["median_CCA"])
+                        case "IBD":
+                            median_group1 = float(row["median_noIBD"])
+                            median_group2 = float(row["median_IBD"])
+                        case "alp":
+                            median_group1 = float(row["median_low_ALP"])
+                            median_group2 = float(row["median_high_ALP"])
+                        case "bilirubin":
+                            median_group1 = float(row["median_low_bilirubin"])
+                            median_group2 = float(
+                                row["median_high_bilirubin"]
+                            )
+                        case "fibrosis":
+                            median_group1 = float(row["median_low_fibrosis"])
+                            median_group2 = float(row["median_high_fibrosis"])
+                        case _:
+                            raise ValueError(
+                                f"Unknown stats subtype: {stats_subtype}"
+                            )
 
-                session.add(base_stats)
-                session.flush()  # To get base_stats.id
+                    base_stats.median_group1 = median_group1
+                    base_stats.median_group2 = median_group2
 
-                stats: MetaboliteStats | MiRNAStats | ProteinStats
+                    session.add(base_stats)
+                    session.flush()  # To get base_stats.id
 
-                match stats_type:
-                    case "metabolites":
-                        stats = MetaboliteStats(
-                            id=base_stats.id,
-                            biochemical=row["BIOCHEMICAL"],
-                            pubchem=parse_string(row["PUBCHEM"]),
-                            hmdb=parse_string(row["HMDB"]),
-                            super_pathway=row["SUPER PATHWAY"],
-                            sub_pathway=row["SUB PATHWAY"],
-                        )
-                    case "miRNA":
-                        stats = MiRNAStats(id=base_stats.id)
-                    case "proteins":
-                        stats = ProteinStats(
-                            id=base_stats.id,
-                            assay=row["Assay"],
-                            description=parse_string(row["description"]),
-                            uniprot_id=parse_string(row["Uniprot ID"]),
-                        )
-                    case _:
-                        raise ValueError(f"Unknown stats type: {stats_type}")
+                    stats: MetaboliteStats | MiRNAStats | ProteinStats
 
-                session.add(stats)
-                print(
-                    f"Added {stats_type} {stats_subtype} stats for variable {variable_name}."
-                )
+                    match stats_type:
+                        case "metabolites":
+                            stats = MetaboliteStats(
+                                id=base_stats.id,
+                                biochemical=row["BIOCHEMICAL"],
+                                pubchem=parse_string(row["PUBCHEM"]),
+                                hmdb=parse_string(row["HMDB"]),
+                                super_pathway=row["SUPER PATHWAY"],
+                                sub_pathway=row["SUB PATHWAY"],
+                            )
+                        case "miRNA":
+                            stats = MiRNAStats(id=base_stats.id)
+                        case "proteins":
+                            stats = ProteinStats(
+                                id=base_stats.id,
+                                assay=row["Assay"],
+                                description=parse_string(row["description"]),
+                                uniprot_id=parse_string(row["Uniprot ID"]),
+                            )
+                        case _:
+                            raise ValueError(
+                                f"Unknown stats type: {stats_type}"
+                            )
+
+                    session.add(stats)
+                    session.flush()
+
+                    savepoint.commit()
+
+                    print(
+                        f"Added {stats_type} {stats_subtype} stats for variable {variable_name}."
+                    )
+
+                except IntegrityError:
+                    # Rollback to savepoint on error (e.g., duplicate entry).
+                    savepoint.rollback()
+                    print(
+                        f"*** Skipping duplicate stats entry for variable {variable_name}."
+                    )
+
             session.commit()
 
 
