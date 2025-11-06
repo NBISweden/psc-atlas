@@ -63,7 +63,7 @@ class Variable(Base):
     __tablename__ = "variables"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(16), unique=True)
+    name: Mapped[str] = mapped_column(String(32), unique=True)
 
 
 class Measurement(Base):
