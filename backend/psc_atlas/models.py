@@ -92,9 +92,6 @@ class BaseStats(Base):
     condition: Mapped[str] = mapped_column(
         String(16)
     )  # CCA, IBD, ALP, bilirubin, fibrosis
-    data_type: Mapped[str] = mapped_column(
-        String(16)
-    )  # metabolite, miRNA, protein
 
     # Common fields
     fold_change: Mapped[float] = mapped_column(Float)
