@@ -120,10 +120,15 @@ def load_data_file(file_path: Path):
                 # Create savepoint for IntegrityError handling.
                 savepoint = session.begin_nested()
 
+                # For entries without a PSCID, create a dummy PSCID
+                # using the string "NA" followed by the row number.
+                if parse_string(row["PSCID"]) is None:
+                    row["PSCID"] = f"NA_row{reader.line_num}"
+
                 try:
                     sample = Sample(
                         type=data_type,
-                        pscid=parse_string(row["PSCID"]),
+                        pscid=row["PSCID"],
                         sampling_date=parse_date(row["sampling_date"]),
                         psc=parse_yes_no(row["PSC"]),
                         cca=parse_yes_no(row["CCA"]),

@@ -38,7 +38,7 @@ class Sample(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     type: Mapped[str] = mapped_column(String(16))
-    pscid: Mapped[str] = mapped_column(String(16), nullable=True)
+    pscid: Mapped[str] = mapped_column(String(16))
     sampling_date: Mapped[date] = mapped_column(Date, nullable=True)
     psc: Mapped[YesNo] = mapped_column(Enum(YesNo), nullable=True)
     cca: Mapped[YesNo] = mapped_column(Enum(YesNo), nullable=True)
