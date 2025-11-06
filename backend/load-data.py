@@ -1,3 +1,5 @@
+#!env python3
+
 import csv
 
 from datetime import datetime
@@ -287,26 +289,29 @@ def load_stats_file(file_path: Path):
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) != 2:
-        print("Usage: python load-data.py <path_to_csv_file>")
+    # Loop over the command-line arguments and process each as a CSV
+    # file.
+
+    if len(sys.argv) < 2:
+        print("Usage: python load-data.py <csv_file_path> ...")
         sys.exit(1)
 
-    csv_file_path = Path(sys.argv[1])
-    if not csv_file_path.exists():
-        print(f"File not found: {csv_file_path}")
-        sys.exit(1)
+    for csv_file in sys.argv[1:]:
+        csv_file_path = Path(csv_file)
 
-    # If the filename starts with "data_", load the data using
-    # load_data_file.  If the filename starts with "stats_", load the
-    # data using load_stats_file.
+        if not csv_file_path.exists():
+            print(f"File not found (skipping): {csv_file_path}")
+            continue
 
-    match csv_file_path.stem.split("_")[0]:
-        case "data":
-            load_data_file(csv_file_path)
-        case "stats":
-            load_stats_file(csv_file_path)
-        case _:
-            print(
-                "Invalid file type. Filename must start with 'data_' or 'stats_'."
-            )
-            sys.exit(1)
+        # If the filename starts with "data_", load the data using
+        # load_data_file.  If the filename starts with "stats_", load
+        # the data using load_stats_file.
+
+        match csv_file_path.stem.split("_")[0]:
+            case "data":
+                load_data_file(csv_file_path)
+            case "stats":
+                load_stats_file(csv_file_path)
+            case _:
+                print(f"Unrecognized file type (skipping): {csv_file_path}")
+                continue
