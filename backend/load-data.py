@@ -47,7 +47,7 @@ def parse_hi_lo(value) -> HiLo | None:
 
 
 def parse_date(value) -> datetime | None:
-    """Convert YYYMMDD string to datetime object, or None for NA."""
+    """Convert YYYYMMDD string to datetime object, or None for NA."""
     value = value.strip()
     match value.lower():
         case "na":
@@ -173,8 +173,6 @@ def load_data_file(file_path: Path):
                     print(
                         f"Processed {reader.line_num} rows for data type {data_type}."
                     )
-
-            session.commit()
 
             print(
                 f"Finished processing data file. Total rows: {reader.line_num}"
@@ -314,8 +312,6 @@ def load_stats_file(file_path: Path):
                     print(
                         f"*** Skipping duplicate stats entry for variable {variable_name} and condition {stats_condition}."
                     )
-
-            session.commit()
 
             print(
                 f"Finished processing stats file. Total rows: {reader.line_num}"
