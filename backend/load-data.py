@@ -48,7 +48,7 @@ def parse_date(value) -> datetime | None:
         case "na":
             return None
         case _:
-            return datetime.strptime(value, "%Y%m%d").date()
+            return datetime.strptime(value, "%Y%m%d")
 
 
 def parse_string(value) -> str | None:
@@ -98,7 +98,7 @@ def load_data_file(file_path: Path):
             "ALP",
         }
 
-        measurement_cols = set(reader.fieldnames) - sample_cols
+        measurement_cols = set(reader.fieldnames or []) - sample_cols
 
         with get_session() as session:
             variable_cache = {}
@@ -215,6 +215,8 @@ def load_stats_file(file_path: Path):
 
                 session.add(base_stats)
                 session.flush()  # To get base_stats.id
+
+                stats: MetaboliteStats | MiRNAStats | ProteinStats
 
                 match stats_type:
                     case "metabolites":
