@@ -1,6 +1,7 @@
 #!env python3
 
 import csv
+import time
 
 from datetime import datetime
 from pathlib import Path
@@ -88,6 +89,8 @@ def load_data_file(file_path: Path):
 
     data_type = file_path.stem.split("_")[1]  # Extract type from filename
 
+    print(f"Loading {data_type} data from file: {file_path}")
+
     with file_path.open("r") as f:
         reader = csv.DictReader(f)
 
@@ -106,6 +109,7 @@ def load_data_file(file_path: Path):
 
         with get_session() as session:
             variable_cache = {}
+
             for name in measurement_cols:
                 variable = (
                     session.query(Variable).filter_by(name=name).first()
@@ -114,7 +118,10 @@ def load_data_file(file_path: Path):
                     variable = Variable(name=name)
                     session.add(variable)
                     session.flush()  # To get variable.id
+
                 variable_cache[name] = variable.id
+
+            progress_time = time.time()
 
             for row in reader:
                 # Create savepoint for IntegrityError handling.
@@ -159,10 +166,19 @@ def load_data_file(file_path: Path):
                     )
                     session.add(measurement)
 
-                print(
-                    f"Loaded sample {sample.pscid} with {len(measurement_cols)} measurements."
-                )
+                # Print progress every 5 seconds.
+                current_time = time.time()
+                if current_time - progress_time >= 5.0:
+                    progress_time = current_time
+                    print(
+                        f"Processed {reader.line_num} rows for data type {data_type}."
+                    )
+
             session.commit()
+
+            print(
+                f"Finished processing data file. Total rows: {reader.line_num}"
+            )
 
 
 def load_stats_file(file_path: Path):
@@ -183,11 +199,17 @@ def load_stats_file(file_path: Path):
         2
     ]  # "CCA", "IBD", "alp", "bilirubin", "fibrosis"
 
+    print(
+        f"Loading {stats_type} stats for condition {stats_condition} from file: {file_path}"
+    )
+
     with file_path.open("r") as f:
         reader = csv.DictReader(f)
 
         with get_session() as session:
             variable_cache = {}
+
+            progress_time = time.time()
 
             for row in reader:
                 variable_name = row["Variable"]
@@ -200,6 +222,7 @@ def load_stats_file(file_path: Path):
                     variable = Variable(name=variable_name)
                     session.add(variable)
                     session.flush()  # To get variable.id
+
                 variable_cache[variable_name] = variable.id
 
                 # Create savepoint for IntegrityError handling.
@@ -276,9 +299,13 @@ def load_stats_file(file_path: Path):
 
                     savepoint.commit()
 
-                    print(
-                        f"Added {stats_type} {stats_condition} stats for variable {variable_name}."
-                    )
+                    # Print progress every 5 seconds.
+                    current_time = time.time()
+                    if current_time - progress_time >= 5.0:
+                        progress_time = current_time
+                        print(
+                            f"Processed {reader.line_num} rows for stats type {stats_type} and condition {stats_condition}."
+                        )
 
                 except IntegrityError:
                     # Rollback to savepoint on error (e.g., duplicate
@@ -289,6 +316,10 @@ def load_stats_file(file_path: Path):
                     )
 
             session.commit()
+
+            print(
+                f"Finished processing stats file. Total rows: {reader.line_num}"
+            )
 
 
 if __name__ == "__main__":
