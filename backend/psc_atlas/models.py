@@ -129,7 +129,7 @@ class MetaboliteStats(Base):
         ForeignKey("base_stats.id"), primary_key=True
     )
     biochemical: Mapped[str] = mapped_column(String)
-    pubchem: Mapped[int] = mapped_column(String, nullable=True)
+    pubchem: Mapped[str] = mapped_column(String, nullable=True)
     hmdb: Mapped[str] = mapped_column(String, nullable=True)
     super_pathway: Mapped[str] = mapped_column(String)
     sub_pathway: Mapped[str] = mapped_column(String)
