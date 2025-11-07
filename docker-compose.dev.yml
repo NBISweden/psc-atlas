@@ -1,11 +1,15 @@
 services:
 
-  proxy:
+  frontend:
     build:
-      target: proxy-dev
+      context: frontend
+      dockerfile: ../Dockerfile
+      target: frontend-dev
       args:
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
+    volumes:
+      - ./frontend:/home/psc-atlas/frontend
 
   backend:
     build:
@@ -19,13 +23,9 @@ services:
       - ./vol:/home/psc-atlas/vol
       - ./backend:/home/psc-atlas/backend
 
-  frontend:
+  proxy:
     build:
-      context: frontend
-      dockerfile: ../Dockerfile
-      target: frontend-dev
+      target: proxy-dev
       args:
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
-    volumes:
-      - ./frontend:/home/psc-atlas/frontend
