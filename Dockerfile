@@ -97,10 +97,16 @@ FROM backend AS backend-build
 
 ENV SERVICE_MODE=production
 
-COPY --chown="$UID:$GID" backend .
+ENV UV_LINK_MODE=copy
 
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
+    --mount=type=bind,source=backend/uv.lock,target=uv.lock \
+    --mount=type=bind,source=backend/pyproject.toml,target=pyproject.toml \
 	uv sync --frozen
+
+COPY --chown="$UID:$GID" backend/psc_atlas psc_atlas
+COPY --chown="$UID:$GID" backend/alembic.ini .
+COPY --chown="$UID:$GID" backend/pyproject.toml .
 
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
     --mount=type=cache,id=mypy-cache,uid="$UID",target="$MYPY_CACHE_DIR" \
