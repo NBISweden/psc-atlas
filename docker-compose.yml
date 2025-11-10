@@ -14,7 +14,7 @@ services:
     ports:
       - 127.0.0.1:3320:8080
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--timeout=5", "http://proxy:8080/health"]
+      test: ["CMD", "wget", "--spider", "--quiet", "http://proxy:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5

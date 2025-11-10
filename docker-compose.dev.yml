@@ -10,6 +10,12 @@ services:
         GID: "${GID:-1000}"
     volumes:
       - ./frontend:/home/psc-atlas/frontend
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://frontend:3000" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   backend:
     build:
@@ -22,6 +28,12 @@ services:
     volumes:
       - ./vol:/home/psc-atlas/vol
       - ./backend:/home/psc-atlas/backend
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://backend:8000/v1/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   proxy:
     build:
@@ -29,3 +41,8 @@ services:
       args:
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
