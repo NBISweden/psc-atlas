@@ -140,7 +140,7 @@ RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
 		dumb-init \
 		uv
 
-RUN install -d -o "$UID" -g "$GID" "$HOME"
+RUN install -d -o "$UID" -g "$GID" "$HOME" "$HOME/vol"
 
 USER "$UID:$GID"
 
@@ -178,8 +178,8 @@ ENV PATH="$HOME/backend/.venv/bin:$PATH"
 
 WORKDIR "$HOME/backend"
 
-COPY --chown="$UID:$GID" \
-	backend/start-script.sh .
+COPY --chown="$UID:$GID" backend/start-script.sh .
+COPY --chown="$UID:$GID" backend/load-data.py .
 
 COPY --from=backend-build --chown="$UID:$GID" \
 	"$HOME"/backend/dist/psc_atlas-*.whl  \
