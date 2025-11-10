@@ -2,6 +2,26 @@
 
 set -u
 
+# Set up the various directories that we expect to be present in
+# "$HOME/vol", if they do not already exist.
+
+if ! chmod u+rwx "$HOME/vol"
+then
+	printf 'Cannot set permissions on volume mount "%s"; exiting.\n' \
+		"$HOME/vol" >&2
+	exit 1
+fi
+
+for dir in upload-data upload-text database
+do
+	if ! mkdir -p "$HOME/vol/$dir"
+	then
+		printf 'Cannot create expected directory "%s" in volume mount "%s"; exiting.\n' \
+			"$dir" "$HOME/vol" >&2
+		exit 1
+	fi
+done
+
 if [ "$SERVICE_MODE" = development ]
 then
 	uv sync --frozen &&
