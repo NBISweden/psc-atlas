@@ -318,14 +318,14 @@ def load_stats_file(file_path: Path):
             )
 
 
-if __name__ == "__main__":
+def main():
     import sys
 
     # Loop over the command-line arguments and process each as a CSV
     # file.
 
     if len(sys.argv) < 2:
-        print("Usage: python load-data.py <csv_file_path> ...")
+        print("Usage: python load_data.py <csv_file_path> ...")
         sys.exit(1)
 
     for csv_file in sys.argv[1:]:
@@ -347,3 +347,7 @@ if __name__ == "__main__":
             case _:
                 print(f"Unrecognized file type (skipping): {csv_file_path}")
                 continue
+
+
+if __name__ == "__main__":
+    main()

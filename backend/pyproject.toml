@@ -12,6 +12,9 @@ dependencies = [
     "uvicorn>=0.38.0",
 ]
 
+[project.scripts]
+load-data = "psc_atlas.load_data:main"
+
 [dependency-groups]
 dev = [
     "build>=1.3.0",
