@@ -106,7 +106,6 @@ RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv sync --frozen
 
 COPY --chown="$UID:$GID" backend/psc_atlas psc_atlas
-COPY --chown="$UID:$GID" backend/alembic.ini .
 COPY --chown="$UID:$GID" backend/pyproject.toml .
 
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
@@ -146,8 +145,6 @@ RUN install -d -o "$UID" -g "$GID" "$HOME" "$HOME/vol"
 
 USER "$UID:$GID"
 
-RUN uv python install
-
 WORKDIR "$HOME"
 
 COPY --chown="$UID:$GID" caddy/Caddyfile .
@@ -180,9 +177,6 @@ ENV PATH="$HOME/backend/.venv/bin:$PATH"
 
 WORKDIR "$HOME/backend"
 
-COPY --chown="$UID:$GID" backend/start-script.sh .
-COPY --chown="$UID:$GID" backend/load-data.py .
-
 COPY --from=backend-build --chown="$UID:$GID" \
 	"$HOME"/backend/dist/psc_atlas-*.whl  \
 	/tmp
@@ -195,18 +189,15 @@ RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 
 RUN rm /tmp/psc_atlas-*.whl
 
+COPY --chown="$UID:$GID" backend/start-script.sh .
+COPY --chown="$UID:$GID" backend/ingester.sh .
+
+COPY --chown="$UID:$GID" backend/alembic alembic
+COPY --chown="$UID:$GID" backend/alembic.ini .
+
 ENV PATH="$HOME/backend/.venv/bin:$PATH"
 
 WORKDIR "$HOME"
-
-# Remove write permissions on everything, and remove *all* permissions
-# for "group" and "others" ("chmod a-w,go=").  The "find" command is
-# doing this in depth-first order ("-depth") to avoid issues with
-# directories losing write permissions before their contents are
-# processed.  Symbolic links are excluded ("! -type l") to avoid
-# "permission denied" errors (changing permissions on symbolic links is
-# not supported on many systems).
-RUN find . -depth ! -type l -exec chmod a-w,go= {} +
 
 # ----
 
