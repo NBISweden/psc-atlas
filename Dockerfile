@@ -66,6 +66,8 @@ FROM python:3.12-alpine AS backend
 ARG UID=1000
 ARG GID=1000
 
+ENV UV_LINK_MODE=copy
+
 RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
 	apk --cache-dir=/var/cache/apk add \
 		dumb-init \
@@ -98,14 +100,12 @@ FROM backend AS backend-build
 
 ENV SERVICE_MODE=production
 
-ENV UV_LINK_MODE=copy
-
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
     --mount=type=bind,source=backend/uv.lock,target=uv.lock \
     --mount=type=bind,source=backend/pyproject.toml,target=pyproject.toml \
 	uv sync --frozen
 
-COPY --chown="$UID:$GID" backend/psc_atlas psc_atlas
+COPY --chown="$UID:$GID" backend/src src
 COPY --chown="$UID:$GID" backend/pyproject.toml .
 
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
