@@ -12,19 +12,20 @@ then
 	exit 1
 fi
 
-for dir in upload-data upload-text database
-do
-	if ! mkdir -p "$HOME/vol/$dir"
-	then
-		printf 'Cannot create expected directory "%s" in volume mount "%s"; exiting.\n' \
-			"$dir" "$HOME/vol" >&2
-		exit 1
-	fi
-done
+if [ "$SERVICE_MODE" = development ]
+then
+	uv sync --frozen
+fi
+
+# Migrate database if needed.
+mkdir -p "$HOME/vol/database" || exit
+uv run alembic upgrade head || exit
+
+# Start the ingester script in the background.
+./ingester.sh &
 
 if [ "$SERVICE_MODE" = development ]
 then
-	uv sync --frozen &&
 	exec uv run uvicorn "psc_atlas:create_app" \
 		--reload \
 		--host 0.0.0.0 \

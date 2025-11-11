@@ -3,7 +3,7 @@
 set -u
 
 if [ "$SERVICE_MODE" = production ]; then
-	backend/start-script.sh &
+	( cd backend && ./start-script.sh ) &
 
 	# Note: No start-script.sh for the frontend in production mode
 	# because Caddy serves the static files directly.
