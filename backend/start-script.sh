@@ -2,16 +2,6 @@
 
 set -u
 
-# Set up the various directories that we expect to be present in
-# "$HOME/vol", if they do not already exist.
-
-if ! chmod u+rwx "$HOME/vol"
-then
-	printf 'Cannot set permissions on volume mount "%s"; exiting.\n' \
-		"$HOME/vol" >&2
-	exit 1
-fi
-
 if [ "$SERVICE_MODE" = development ]
 then
 	uv sync --frozen
