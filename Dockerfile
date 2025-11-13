@@ -114,7 +114,7 @@ RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv run python -m build
 
-# Note: The built wheel file is copied in the "proxy-prod" stage.
+# Note: The built wheel file is installed in the "proxy-prod" stage.
 
 # ----
 
@@ -175,17 +175,12 @@ ENV PATH="$HOME/backend/.venv/bin:$PATH"
 
 WORKDIR "$HOME/backend"
 
-COPY --from=backend-build --chown="$UID:$GID" \
-	"$HOME"/backend/dist/psc_atlas-*.whl  \
-	/tmp
-
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv venv .venv
 
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
-	uv pip install /tmp/psc_atlas-*.whl
-
-RUN rm /tmp/psc_atlas-*.whl
+    --mount=type=bind,from=backend-build,source="$HOME/backend/dist",target=/tmp/dist \
+	uv pip install /tmp/dist/psc_atlas-*.whl
 
 COPY --chown="$UID:$GID" backend/start-script.sh .
 COPY --chown="$UID:$GID" backend/ingester.sh .
