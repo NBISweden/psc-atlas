@@ -70,8 +70,7 @@ ENV UV_LINK_MODE=copy
 
 RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
 	apk --cache-dir=/var/cache/apk add \
-		dumb-init \
-		inotify-tools
+		dumb-init
 
 ENV HOME=/home/psc-atlas
 
@@ -138,7 +137,6 @@ RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
 	apk --cache-dir=/var/cache/apk add \
 		caddy \
 		dumb-init \
-		inotify-tools \
 		uv
 
 RUN install -d -o "$UID" -g "$GID" "$HOME" "$HOME/vol"
