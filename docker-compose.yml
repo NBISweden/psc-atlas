@@ -3,6 +3,7 @@ name: psc-atlas
 services:
 
   proxy:
+    image: harbor.nbis.se/meerkats/psc-atlas:${TAG:-latest}
     build:
       context: .
       target: proxy-prod
