@@ -32,9 +32,7 @@ dirchecksum () {
 	find "$1" -type f -exec md5sum {} + | sort | md5sum
 }
 
-inotifywait -m -e close_write,moved_to --format '%f' "$WATCH_DIR" |
-while read filename
-do
+while true; do
 	# Wait until the content of the directory stabilizes.
 	while true; do
 		checksum_before=$(dirchecksum "$WATCH_DIR")
@@ -46,9 +44,13 @@ do
 		fi
 	done
 
-	# We ignore the filename in $filename and instead loop over all
-	# names that look like names of Zip archives.
+	# We loop over all names that look like names of Zip archives.
 	for archive in "$WATCH_DIR"/*.zip; do
+		if [ ! -f "$archive" ]; then
+			# No Zip archives found.
+			continue
+		fi
+
 		printf "Processing archive: %s\n" "$archive" >&2
 		if ! unzip -o "$archive" -d "$EXTRACT_DIR"
 		then
@@ -57,8 +59,8 @@ do
 			continue
 		fi
 
-                # Now look for CSV file and process them.  We ignore
-                # names that are hidden files (starting with a dot).
+		# Now look for CSV file and process them.  We ignore
+		# names that are hidden files (starting with a dot).
 		find "$EXTRACT_DIR" \
 			! -name '.*' \
 			-name '*.csv' \
@@ -78,4 +80,7 @@ do
 		mv -f "$archive" "$PROCESSED_DIR/"
 		printf "Finished processing archive: %s\n" "$archive" >&2
 	done
+
+	# Sleep before checking the directory again.
+	sleep 60
 done
