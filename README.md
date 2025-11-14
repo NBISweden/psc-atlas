@@ -121,7 +121,7 @@ If managing a deployment on SciLifeLab Serve, you may use the "File
 Manager" feature to upload the Zip archive into the `uploads` directory
 within the project's persistent volume.
 
-When A Zip archive is found in the correct place, the application's log
+When a Zip archive is found in the correct place, the application's log
 should say
 
     Processing archive: /home/psc-atlas/vol/uploads/your-archive.zip

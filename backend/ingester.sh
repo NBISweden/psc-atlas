@@ -59,8 +59,8 @@ while true; do
 			continue
 		fi
 
-		# Now look for CSV file and process them.  We ignore
-		# names that are hidden files (starting with a dot).
+		# Now look for CSV files and process them.  We ignore
+		# names that are hidden (starting with a dot).
 		find "$EXTRACT_DIR" \
 			! -name '.*' \
 			-name '*.csv' \
