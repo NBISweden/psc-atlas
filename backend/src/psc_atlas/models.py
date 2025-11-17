@@ -127,18 +127,14 @@ class MetaboliteStats(Base):
 
     __tablename__ = "metabolite_stats"
 
-    id: Mapped[int] = mapped_column(
-        ForeignKey("base_stats.id"), primary_key=True
-    )
+    id: Mapped[int] = mapped_column(ForeignKey("base_stats.id"), primary_key=True)
     biochemical: Mapped[str] = mapped_column(String)
     pubchem: Mapped[str] = mapped_column(String, nullable=True)
     hmdb: Mapped[str] = mapped_column(String, nullable=True)
     super_pathway: Mapped[str] = mapped_column(String)
     sub_pathway: Mapped[str] = mapped_column(String)
 
-    base: Mapped["BaseStats"] = relationship(
-        back_populates="metabolite_details"
-    )
+    base: Mapped["BaseStats"] = relationship(back_populates="metabolite_details")
 
 
 class MiRNAStats(Base):
@@ -146,9 +142,7 @@ class MiRNAStats(Base):
 
     __tablename__ = "mirna_stats"
 
-    id: Mapped[int] = mapped_column(
-        ForeignKey("base_stats.id"), primary_key=True
-    )
+    id: Mapped[int] = mapped_column(ForeignKey("base_stats.id"), primary_key=True)
     base: Mapped["BaseStats"] = relationship(back_populates="mirna_details")
 
 
@@ -157,9 +151,7 @@ class ProteinStats(Base):
 
     __tablename__ = "protein_stats"
 
-    id: Mapped[int] = mapped_column(
-        ForeignKey("base_stats.id"), primary_key=True
-    )
+    id: Mapped[int] = mapped_column(ForeignKey("base_stats.id"), primary_key=True)
     assay: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String, nullable=True)
     uniprot_id: Mapped[str] = mapped_column(String, nullable=True)
