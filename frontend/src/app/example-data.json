@@ -2,27 +2,27 @@
   "conditions": [
     {
       "name": "PSC",
-      "groups": ["Yes", "No", "NA"]
+      "values": ["Yes", "No"]
     },
     {
       "name": "CCA",
-      "groups": ["Yes", "No", "NA"]
+      "values": ["Yes", "No"]
     },
     {
       "name": "IBD",
-      "groups": ["Yes", "No", "NA"]
+      "values": ["Yes", "No"]
     },
     {
       "name": "Fibrosis",
-      "groups": ["High", "Low", "NA"]
+      "values": ["High", "Low"]
     },
     {
       "name": "Bilirubin",
-      "groups": ["High", "Low", "NA"]
+      "values": ["High", "Low"]
     },
     {
       "name": "ALP",
-      "groups": ["High", "Low", "NA"]
+      "values": ["High", "Low"]
     }
   ],
   "variables": [

@@ -14,18 +14,17 @@ const ExploreData: React.FC = () => {
   // menu choice (metabolite / protein/ miRNA). Should also become a type.
   const dataset = "protein";
 
+  const params = new URLSearchParams();
+  params.append("dataset", dataset);
+
   type Condition = {
     name: string;
-    groups: string[];
+    values: string[];
   };
 
   const getConditions = async () => {
-    console.log("getting conditions");
     try {
-      const response = await fetch("/conditions", {
-        method: "POST",
-        body: JSON.stringify({ dataset: dataset }),
-      });
+      const response = await fetch(`/conditions?${params}`);
       if (!response.ok) {
         throw new Error();
       }
@@ -41,12 +40,8 @@ const ExploreData: React.FC = () => {
   };
 
   const getVariables = async () => {
-    console.log("getting variables");
     try {
-      const response = await fetch("/variables", {
-        method: "POST",
-        body: JSON.stringify({ dataset: dataset }),
-      });
+      const response = await fetch(`/variables?${params}`);
       if (!response.ok) {
         throw new Error();
       }
@@ -62,7 +57,6 @@ const ExploreData: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log("trigger use effect");
     getConditions();
     getVariables();
   }, []);
@@ -107,14 +101,20 @@ const ExploreData: React.FC = () => {
             {selectedXaxis && (
               <fieldset>
                 <legend className="fs-6">
-                  Which groups should be included?
+                  Which values should be included?
                 </legend>
-                {selectedXaxis.groups.map((group) => (
-                  <div key={group}>
-                    <input type="checkbox" id={group} />
-                    <label htmlFor={group}>{group}</label>
+                {selectedXaxis.values.map((value) => (
+                  <div key={value}>
+                    <input type="checkbox" id={value} />
+                    <label htmlFor={value}>{value}</label>
                   </div>
                 ))}
+                <div className="my-3">
+                  <input type="checkbox" id="healthy" />
+                  <label htmlFor="healthy">
+                    Include healthy reference samples
+                  </label>
+                </div>
               </fieldset>
             )}
 
@@ -137,14 +137,20 @@ const ExploreData: React.FC = () => {
             {selectedLegend && (
               <fieldset>
                 <legend className="fs-6">
-                  Which groups should be included?
+                  Which values should be included?
                 </legend>
-                {selectedLegend.groups.map((group) => (
-                  <div key={group}>
-                    <input type="checkbox" id={group} />
-                    <label htmlFor={group}>{group}</label>
+                {selectedLegend.values.map((value) => (
+                  <div key={value}>
+                    <input type="checkbox" id={value} />
+                    <label htmlFor={value}>{value}</label>
                   </div>
                 ))}
+                <div className="my-3">
+                  <input type="checkbox" id="healthy" />
+                  <label htmlFor="healthy">
+                    Include healthy reference samples
+                  </label>
+                </div>
               </fieldset>
             )}
 
