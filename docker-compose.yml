@@ -3,6 +3,7 @@ name: psc-atlas
 services:
 
   proxy:
+    image: harbor.nbis.se/meerkats/psc-atlas:${TAG:-latest}
     build:
       context: .
       target: proxy-prod
@@ -14,7 +15,7 @@ services:
     ports:
       - 127.0.0.1:3320:8080
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--timeout=5", "http://proxy:8080/health"]
+      test: ["CMD", "wget", "--spider", "--quiet", "http://proxy:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5

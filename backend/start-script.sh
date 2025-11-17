@@ -4,7 +4,18 @@ set -u
 
 if [ "$SERVICE_MODE" = development ]
 then
-	uv sync --frozen &&
+	uv sync --frozen
+fi
+
+# Migrate database if needed.
+mkdir -p "$HOME/vol/database" || exit
+uv run alembic upgrade head || exit
+
+# Start the ingester script in the background.
+./ingester.sh &
+
+if [ "$SERVICE_MODE" = development ]
+then
 	exec uv run uvicorn "psc_atlas:create_app" \
 		--reload \
 		--host 0.0.0.0 \

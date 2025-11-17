@@ -2,3 +2,6 @@
 .idea
 .vscode
 .env
+
+# Volume mount point
+/vol

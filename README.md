@@ -23,7 +23,7 @@ environment.
 
 Thus, to start the production environment, use:
 
-```sh
+``` sh
 ./compose-prod.sh up --build
 ```
 
@@ -31,7 +31,7 @@ Thus, to start the production environment, use:
 
 To start the development environment, use:
 
-```sh
+``` sh
 ./compose-dev.sh up --build
 ```
 
@@ -41,7 +41,7 @@ environments.
 
 For example:
 
-```sh
+``` sh
 ./compose-prod.sh {up|down|logs|...}
 ```
 
@@ -63,30 +63,87 @@ The main differences between the two environments are:
   static files and proxies API requests to the backend, all within a
   single container.
 
-The production environment should ideally be pulling a ready-made image
-from a registry and only be building the image locally for testing
-purposes. This is not yet implemented as there is currently no built
-image available in a registry.
+- In production, persistent data is stored within a volume mounted at
+  `/home/psc-atlas/vol`. In development, instead of a volume, a bind
+  mount of the `vol` directory at the top of the project's Git
+  repository is used (this directory is created automatically if it does
+  not exist when starting the development environment).
 
 ## Adding dependencies
 
 To add a package within the backend, run
 
-```
-uv add [package name]
+``` sh
+uv add {package name}
 ```
 
 then, inside the `backend` directory, run
 
-```
+``` sh
 ./update-uv-lock
 ```
 
-To add a package within the frontend, add it first to the `package.json` file.
-Then move to the `frontend` directory and run
+To add a package within the frontend, add it first to the `package.json`
+file. Then move to the `frontend` directory and run
 
-```
+``` sh
 ./update-package-lock
+```
+
+## Uploading data into the running container
+
+While the project is up and running, a process is checking for Zip
+archives placed in the `vol/uploads` directory. This check is performed
+once a minute.
+
+Any found Zip archive is unpacked into `vol/tmp`. After unpacking, the
+contents is scanned for CSV files, which are then imported into the
+database.
+
+Upon successful import, the uploaded Zip archive is moved to
+`vol/processed`. Successfully imported CSV files are removed while CSV
+files that could not be imported are moved to `vol/failed`.
+
+When done, all files and directories in `vol/tmp` are removed.
+
+### Uploading files in production
+
+In production, copy the Zip archive into the `uploads` directory within
+the persistent volume.
+
+``` sh
+./compose-prod.sh up --build -d
+./compose-prod.sh cp .../your-archive.zip proxy:/home/psc-atlas/vol/uploads/
+./compose-prod.sh logs -f proxy
+```
+
+If managing a deployment on SciLifeLab Serve, you may use the "File
+Manager" feature to upload the Zip archive into the `uploads` directory
+within the project's persistent volume.
+
+When a Zip archive is found in the correct place, the application's log
+should say
+
+    Processing archive: /home/psc-atlas/vol/uploads/your-archive.zip
+
+There should then be further log messages about loading CSV files, and
+then a final message saying
+
+    Finished processing archive: /home/psc-atlas/vol/uploads/your-archive.zip
+
+indicating that the process is done.
+
+### Uploading files in development
+
+In development, copy the Zip archive into the `vol/uploads` directory at
+the top of the project's Git repository. You may then follow the logs of
+the backend container (not the proxy container as in production) to see
+the progress of the upload and import process.
+
+``` sh
+./compose-dev.sh up --build -d
+cp .../your-archive.zip vol/uploads/
+./compose-dev.sh logs -f backend
 ```
 
 ## Docker build structure

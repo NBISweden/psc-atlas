@@ -66,6 +66,8 @@ FROM python:3.12-alpine AS backend
 ARG UID=1000
 ARG GID=1000
 
+ENV UV_LINK_MODE=copy
+
 RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
 	apk --cache-dir=/var/cache/apk add \
 		dumb-init
@@ -97,10 +99,13 @@ FROM backend AS backend-build
 
 ENV SERVICE_MODE=production
 
-COPY --chown="$UID:$GID" backend .
-
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
+    --mount=type=bind,source=backend/uv.lock,target=uv.lock \
+    --mount=type=bind,source=backend/pyproject.toml,target=pyproject.toml \
 	uv sync --frozen
+
+COPY --chown="$UID:$GID" backend/src src
+COPY --chown="$UID:$GID" backend/pyproject.toml .
 
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
     --mount=type=cache,id=mypy-cache,uid="$UID",target="$MYPY_CACHE_DIR" \
@@ -109,7 +114,7 @@ RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv run python -m build
 
-# Note: The built wheel file is copied in the "proxy-prod" stage.
+# Note: The built wheel file is installed in the "proxy-prod" stage.
 
 # ----
 
@@ -134,11 +139,9 @@ RUN --mount=type=cache,id=apk-cache,target=/var/cache/apk \
 		dumb-init \
 		uv
 
-RUN install -d -o "$UID" -g "$GID" "$HOME"
+RUN install -d -o "$UID" -g "$GID" "$HOME" "$HOME/vol"
 
 USER "$UID:$GID"
-
-RUN uv python install
 
 WORKDIR "$HOME"
 
@@ -172,33 +175,22 @@ ENV PATH="$HOME/backend/.venv/bin:$PATH"
 
 WORKDIR "$HOME/backend"
 
-COPY --chown="$UID:$GID" \
-	backend/start-script.sh .
-
-COPY --from=backend-build --chown="$UID:$GID" \
-	"$HOME"/backend/dist/psc_atlas-*.whl  \
-	/tmp
-
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv venv .venv
 
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
-	uv pip install /tmp/psc_atlas-*.whl
+    --mount=type=bind,from=backend-build,source="$HOME/backend/dist",target=/tmp/dist \
+	uv pip install /tmp/dist/psc_atlas-*.whl
 
-RUN rm /tmp/psc_atlas-*.whl
+COPY --chown="$UID:$GID" backend/start-script.sh .
+COPY --chown="$UID:$GID" backend/ingester.sh .
+
+COPY --chown="$UID:$GID" backend/alembic alembic
+COPY --chown="$UID:$GID" backend/alembic.ini .
 
 ENV PATH="$HOME/backend/.venv/bin:$PATH"
 
 WORKDIR "$HOME"
-
-# Remove write permissions on everything, and remove *all* permissions
-# for "group" and "others" ("chmod a-w,go=").  The "find" command is
-# doing this in depth-first order ("-depth") to avoid issues with
-# directories losing write permissions before their contents are
-# processed.  Symbolic links are excluded ("! -type l") to avoid
-# "permission denied" errors (changing permissions on symbolic links is
-# not supported on many systems).
-RUN find . -depth ! -type l -exec chmod a-w,go= {} +
 
 # ----
 

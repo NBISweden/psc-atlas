@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import csv
+import logging
 import time
 
 from datetime import datetime
@@ -18,6 +19,9 @@ from psc_atlas.models import (
 )
 
 from psc_atlas.session import get_session
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def parse_yes_no(value: str) -> YesNo | None:
@@ -89,7 +93,7 @@ def load_data_file(file_path: Path):
 
     data_type = file_path.stem.split("_")[1]  # Extract type from filename
 
-    print(f"Loading {data_type} data from file: {file_path}")
+    logger.info(f"Loading {data_type} data from file: {file_path}")
 
     with file_path.open("r") as f:
         reader = csv.DictReader(f)
@@ -153,8 +157,8 @@ def load_data_file(file_path: Path):
                     # Rollback to savepoint on error (e.g., duplicate
                     # (type, pscid)).
                     savepoint.rollback()
-                    print(
-                        f"*** Skipping duplicate sample entry for PSCID {row['PSCID']} of type {data_type}."
+                    logger.warning(
+                        f"Skipping duplicate sample entry for PSCID {row['PSCID']} of type {data_type}."
                     )
                     continue
 
@@ -170,11 +174,11 @@ def load_data_file(file_path: Path):
                 current_time = time.time()
                 if current_time - progress_time >= 5.0:
                     progress_time = current_time
-                    print(
+                    logger.info(
                         f"Processed {reader.line_num} rows for data type {data_type}."
                     )
 
-            print(
+            logger.info(
                 f"Finished processing data file. Total rows: {reader.line_num}"
             )
 
@@ -197,7 +201,7 @@ def load_stats_file(file_path: Path):
         2
     ]  # "CCA", "IBD", "alp", "bilirubin", "fibrosis"
 
-    print(
+    logger.info(
         f"Loading {stats_type} stats for condition {stats_condition} from file: {file_path}"
     )
 
@@ -301,7 +305,7 @@ def load_stats_file(file_path: Path):
                     current_time = time.time()
                     if current_time - progress_time >= 5.0:
                         progress_time = current_time
-                        print(
+                        logger.info(
                             f"Processed {reader.line_num} rows for stats type {stats_type} and condition {stats_condition}."
                         )
 
@@ -309,30 +313,30 @@ def load_stats_file(file_path: Path):
                     # Rollback to savepoint on error (e.g., duplicate
                     # (variable_id, condition)).
                     savepoint.rollback()
-                    print(
-                        f"*** Skipping duplicate stats entry for variable {variable_name} and condition {stats_condition}."
+                    logger.warning(
+                        f"Skipping duplicate stats entry for variable {variable_name} and condition {stats_condition}."
                     )
 
-            print(
+            logger.info(
                 f"Finished processing stats file. Total rows: {reader.line_num}"
             )
 
 
-if __name__ == "__main__":
+def main():
     import sys
 
     # Loop over the command-line arguments and process each as a CSV
     # file.
 
     if len(sys.argv) < 2:
-        print("Usage: python load-data.py <csv_file_path> ...")
+        print("Usage: python load_data.py <csv_file_path> ...")
         sys.exit(1)
 
     for csv_file in sys.argv[1:]:
         csv_file_path = Path(csv_file)
 
         if not csv_file_path.exists():
-            print(f"File not found (skipping): {csv_file_path}")
+            logger.warning(f"File not found (skipping): {csv_file_path}")
             continue
 
         # If the filename starts with "data_", load the data using
@@ -345,5 +349,11 @@ if __name__ == "__main__":
             case "stats":
                 load_stats_file(csv_file_path)
             case _:
-                print(f"Unrecognized file type (skipping): {csv_file_path}")
+                logger.warning(
+                    f"Unrecognized file type (skipping): {csv_file_path}"
+                )
                 continue
+
+
+if __name__ == "__main__":
+    main()
