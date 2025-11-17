@@ -15,8 +15,8 @@ import enum
 class YesNo(enum.Enum):
     """Simple Enum for Yes/No fields."""
 
-    YES = "yes"
-    NO = "no"
+    YES = "Yes"
+    NO = "No"
 
 
 class HiLo(enum.Enum):
