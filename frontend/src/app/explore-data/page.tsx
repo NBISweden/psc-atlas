@@ -1,326 +1,172 @@
 "use client";
 
-import React, { useState } from "react";
-import Plot from "./../components/Plot/Plot";
+import React, { useEffect, useState } from "react";
 import exampleData from "./../example-data.json";
 
 const ExploreData: React.FC = () => {
-  const [scatterClicked, setScatterClicked] = useState<boolean>(false);
-  const [violinClicked, setViolinClicked] = useState<boolean>(false);
+  const [conditions, setConditions] = useState<Condition[]>([]);
+  const [variables, setVariables] = useState<string[]>([]);
+  const [selectedXaxis, setSelectedXaxis] = useState<Condition>();
+  const [selectedLegend, setSelectedLegend] = useState<Condition>();
+  const [selectedVariable, setSelectedVariable] = useState<string>();
+
+  // should come from the URL in the future depending on the user's
+  // menu choice (metabolite / protein/ miRNA). Should also become a type.
+  const dataset = "protein";
+
+  type Condition = {
+    name: string;
+    groups: string[];
+  };
+
+  const getConditions = async () => {
+    console.log("getting conditions");
+    try {
+      const response = await fetch("/conditions", {
+        method: "POST",
+        body: JSON.stringify({ dataset: dataset }),
+      });
+      if (!response.ok) {
+        throw new Error();
+      }
+      const conditions: Condition[] = await response.json();
+      setConditions(conditions);
+    } catch (error) {
+      console.log(error);
+      // for now hardcoded:
+      console.log(exampleData.conditions);
+      setConditions(exampleData.conditions);
+    }
+    return;
+  };
+
+  const getVariables = async () => {
+    console.log("getting variables");
+    try {
+      const response = await fetch("/variables", {
+        method: "POST",
+        body: JSON.stringify({ dataset: dataset }),
+      });
+      if (!response.ok) {
+        throw new Error();
+      }
+      const variables: string[] = await response.json();
+      setVariables(variables);
+    } catch (error) {
+      console.log(error);
+      // for now hardcoded:
+      console.log(exampleData.variables);
+      setVariables(exampleData.variables);
+    }
+    return;
+  };
+
+  useEffect(() => {
+    console.log("trigger use effect");
+    getConditions();
+    getVariables();
+  }, []);
+
+  const handleSelectXaxis = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedXaxis(
+      conditions.find((condition) => condition.name === event.target.value)
+    );
+  };
+  const handleSelectLegend = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedLegend(
+      conditions.find((condition) => condition.name === event.target.value)
+    );
+  };
+  const handleSelectVariable = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setSelectedVariable(event.target.value);
+  };
 
   return (
     <>
       <section>
         <div>
-          <Plot
-            data={[
-              {
-                x: exampleData.x,
-                y: exampleData.y,
-                type: "scatter",
-                mode: "markers",
-                marker: { color: "f56a6a" },
-              },
-            ]}
-            layout={{ width: 700, height: 500 }}
-            onClick={() => setScatterClicked(true)}
-          />
-        </div>
-        {scatterClicked && (
-          <div>
-            <p>The plot has been clicked!</p>
-            <button onClick={() => setScatterClicked(false)}>
-              Hide me again
-            </button>
-          </div>
-        )}
-      </section>
-      <section>
-        <div>
-          <Plot
-            data={[
-              {
-                x: exampleData.category,
-                y: exampleData.score,
-                type: "violin",
-                mode: "markers",
-                marker: { color: "f56a6a" },
-              },
-            ]}
-            layout={{ width: 700, height: 500 }}
-            onClick={() => setViolinClicked(true)}
-          />
-        </div>
-        {violinClicked && (
-          <div>
-            <p>The plot has been clicked!</p>
-            <button onClick={() => setViolinClicked(false)}>
-              Hide me again
-            </button>
-          </div>
-        )}
-      </section>
-      <section>
-        <div>
-          <Plot
-            data={[
-              {
-                type: "violin",
-                x: exampleData.condition_yes,
-                y: exampleData.CCA_yes,
-                legendgroup: "Yes",
-                scalegroup: "Yes",
-                name: "Yes",
-                box: {
-                  visible: true,
-                },
-                line: {
-                  color: "blue",
-                },
-                meanline: {
-                  visible: true,
-                },
-              },
-              {
-                type: "violin",
-                x: exampleData.condition_no,
-                y: exampleData.CCA_no,
-                legendgroup: "No",
-                scalegroup: "No",
-                name: "No",
-                box: {
-                  visible: true,
-                },
-                line: {
-                  color: "pink",
-                },
-                meanline: {
-                  visible: true,
-                },
-              },
-            ]}
-            layout={{
-              width: 700,
-              height: 500,
-              violinmode: "group",
-              title: {
-                text: "OID01329",
-              },
-            }}
-            onClick={() => setViolinClicked(true)}
-          />
-        </div>
-        {violinClicked && (
-          <div>
-            <p>The plot has been clicked!</p>
-            <button onClick={() => setViolinClicked(false)}>
-              Hide me again
-            </button>
-          </div>
-        )}
-      </section>
-      <section>
-        <div style={{ display: "flex" }}>
-          <form style={{ marginRight: "50px" }}>
-            <p>What to show on x-axis</p>
-            <input type="radio" id="PSC" value="PSC" />
-            <label htmlFor="PSC"> PSC</label>
-            <br></br>
-            <input type="radio" id="CCA" value="CCA" checked={true} />
-            <label htmlFor="CCA"> CCA</label>
-            <br></br>
-            <input type="radio" id="IBD" value="IBD" />
-            <label htmlFor="IBD"> IBD</label>
-            <br></br>
-            <input type="radio" id="Fibrosis" value="Fibrosis" />
-            <label htmlFor="Fibrosis"> Fibrosis</label>
-            <br></br>
-            <input type="radio" id="Bilirubin" value="Bilirubin" />
-            <label htmlFor="Bilirubin"> Bilirubin</label>
-            <br></br>
-            <input type="radio" id="ALP" value="ALP" />
-            <label htmlFor="ALP"> ALP</label>
-            <br></br>
+          <form className="d-flex flex-column mb-5">
+            <h5>Choose your x-axis variable</h5>
+            <label htmlFor="xAxis">Select condition</label>
+            <select
+              id="xAxis"
+              value={selectedXaxis ? selectedXaxis.name : ""}
+              onChange={handleSelectXaxis}
+              className="mb-3"
+            >
+              <option value="" disabled></option>
+              {conditions.map((condition) => (
+                <option key={condition.name} value={condition.name}>
+                  {condition.name}
+                </option>
+              ))}
+            </select>
+
+            {selectedXaxis && (
+              <fieldset>
+                <legend className="fs-6">
+                  Which groups should be included?
+                </legend>
+                {selectedXaxis.groups.map((group) => (
+                  <div key={group}>
+                    <input type="checkbox" id={group} />
+                    <label htmlFor={group}>{group}</label>
+                  </div>
+                ))}
+              </fieldset>
+            )}
+
+            <h5>Choose your legend variable</h5>
+            <label htmlFor="legend">Select condition</label>
+            <select
+              id="legend"
+              value={selectedLegend ? selectedLegend.name : ""}
+              onChange={handleSelectLegend}
+              className="mb-3"
+            >
+              <option value="" disabled></option>
+              {conditions.map((condition) => (
+                <option key={condition.name} value={condition.name}>
+                  {condition.name}
+                </option>
+              ))}
+            </select>
+
+            {selectedLegend && (
+              <fieldset>
+                <legend className="fs-6">
+                  Which groups should be included?
+                </legend>
+                {selectedLegend.groups.map((group) => (
+                  <div key={group}>
+                    <input type="checkbox" id={group} />
+                    <label htmlFor={group}>{group}</label>
+                  </div>
+                ))}
+              </fieldset>
+            )}
+
+            <h5>Select your {dataset}</h5>
+            <label htmlFor="variable">Select {dataset}</label>
+            <select
+              id="variable"
+              value={selectedVariable ? selectedVariable : ""}
+              onChange={handleSelectVariable}
+            >
+              <option value="" disabled></option>
+              {variables.map((variable) => (
+                <option key={variable} value={variable}>
+                  {variable}
+                </option>
+              ))}
+            </select>
           </form>
-          <form>
-            <p>Filter violins by</p>
-            <input type="radio" id="PSC" value="PSC" />
-            <label htmlFor="PSC"> PSC</label>
-            <br></br>
-            <input type="radio" id="CCA" value="CCA" />
-            <label htmlFor="CCA"> CCA</label>
-            <br></br>
-            <input type="radio" id="IBD" value="IBD" />
-            <label htmlFor="IBD"> IBD</label>
-            <br></br>
-            <input type="radio" id="Fibrosis" value="Fibrosis" />
-            <label htmlFor="Fibrosis"> Fibrosis</label>
-            <br></br>
-            <input type="radio" id="Bilirubin" value="Bilirubin" />
-            <label htmlFor="Bilirubin"> Bilirubin</label>
-            <br></br>
-            <input type="radio" id="ALP" value="ALP" />
-            <label htmlFor="ALP"> ALP</label>
-            <br></br>
-            <input type="radio" id="None" value="None" checked={true} />
-            <label htmlFor="None"> None</label>
-            <br></br>
-          </form>
+          <button type="button" className="btn btn-primary">
+            Create plot
+          </button>
         </div>
-        <div>
-          <Plot
-            data={[
-              {
-                x: exampleData.CCA.group,
-                y: exampleData.CCA.value,
-                type: "violin",
-                mode: "markers",
-                marker: { color: "f56a6a" },
-              },
-            ]}
-            layout={{ width: 700, height: 500, title: { text: "CCA" } }}
-            onClick={() => setViolinClicked(true)}
-          />
-        </div>
-        {violinClicked && (
-          <div>
-            <p>The plot has been clicked!</p>
-            <button onClick={() => setViolinClicked(false)}>
-              Hide me again
-            </button>
-          </div>
-        )}
-      </section>
-      <section>
-        <div style={{ display: "flex" }}>
-          <form style={{ marginRight: "50px" }}>
-            <p>What to show on x-axis</p>
-            <input type="radio" id="PSC" value="PSC" />
-            <label htmlFor="PSC"> PSC</label>
-            <br></br>
-            <input type="radio" id="CCA" value="CCA" checked={true} />
-            <label htmlFor="CCA"> CCA</label>
-            <br></br>
-            <input type="radio" id="IBD" value="IBD" />
-            <label htmlFor="IBD"> IBD</label>
-            <br></br>
-            <input type="radio" id="Fibrosis" value="Fibrosis" />
-            <label htmlFor="Fibrosis"> Fibrosis</label>
-            <br></br>
-            <input type="radio" id="Bilirubin" value="Bilirubin" />
-            <label htmlFor="Bilirubin"> Bilirubin</label>
-            <br></br>
-            <input type="radio" id="ALP" value="ALP" />
-            <label htmlFor="ALP"> ALP</label>
-            <br></br>
-          </form>
-          <form>
-            <p>Filter violins by</p>
-            <input type="radio" id="PSC" value="PSC" />
-            <label htmlFor="PSC"> PSC</label>
-            <br></br>
-            <input type="radio" id="CCA" value="CCA" />
-            <label htmlFor="CCA"> CCA</label>
-            <br></br>
-            <input type="radio" id="IBD" value="IBD" />
-            <label htmlFor="IBD"> IBD</label>
-            <br></br>
-            <input type="radio" id="Fibrosis" value="Fibrosis" checked={true} />
-            <label htmlFor="Fibrosis"> Fibrosis</label>
-            <br></br>
-            <input type="radio" id="Bilirubin" value="Bilirubin" />
-            <label htmlFor="Bilirubin"> Bilirubin</label>
-            <br></br>
-            <input type="radio" id="ALP" value="ALP" />
-            <label htmlFor="ALP"> ALP</label>
-            <br></br>
-            <input type="radio" id="None" value="None" />
-            <label htmlFor="None"> None</label>
-            <br></br>
-          </form>
-        </div>
-        <div>
-          <Plot
-            data={[
-              {
-                type: "violin",
-                x: exampleData.CCA_filtered_Fibrosis.CCA_yes.group.concat(
-                  exampleData.CCA_filtered_Fibrosis.CCA_no.group
-                ),
-                y: exampleData.CCA_filtered_Fibrosis.CCA_yes.Fib_high.concat(
-                  exampleData.CCA_filtered_Fibrosis.CCA_no.Fib_high
-                ),
-                legendgroup: "High",
-                scalegroup: "High",
-                name: "Fibrosis High",
-                box: {
-                  visible: true,
-                },
-                line: {
-                  color: "blue",
-                },
-                meanline: {
-                  visible: true,
-                },
-              },
-              {
-                type: "violin",
-                x: exampleData.CCA_filtered_Fibrosis.CCA_yes.group.concat(
-                  exampleData.CCA_filtered_Fibrosis.CCA_no.group
-                ),
-                y: exampleData.CCA_filtered_Fibrosis.CCA_yes.Fib_low.concat(
-                  exampleData.CCA_filtered_Fibrosis.CCA_no.Fib_low
-                ),
-                legendgroup: "Low",
-                scalegroup: "Low",
-                name: "Fibrosis Low",
-                box: {
-                  visible: true,
-                },
-                line: {
-                  color: "pink",
-                },
-                meanline: {
-                  visible: true,
-                },
-              },
-              {
-                type: "violin",
-                x: exampleData.CCA_filtered_Fibrosis.healthy.group,
-                y: exampleData.CCA_filtered_Fibrosis.healthy.value,
-                legendgroup: "healthy",
-                scalegroup: "healthy",
-                name: "Healthy",
-                box: {
-                  visible: true,
-                },
-                line: {
-                  color: "green",
-                },
-                meanline: {
-                  visible: true,
-                },
-              },
-            ]}
-            layout={{
-              width: 700,
-              height: 500,
-              violinmode: "group",
-              title: {
-                text: "CCA",
-              },
-            }}
-            onClick={() => setViolinClicked(true)}
-          />
-        </div>
-        {violinClicked && (
-          <div>
-            <p>The plot has been clicked!</p>
-            <button onClick={() => setViolinClicked(false)}>
-              Hide me again
-            </button>
-          </div>
-        )}
       </section>
     </>
   );
