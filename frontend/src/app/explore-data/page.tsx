@@ -7,8 +7,11 @@ const ExploreData: React.FC = () => {
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [variables, setVariables] = useState<string[]>([]);
   const [selectedXaxis, setSelectedXaxis] = useState<Condition>();
+  const [xAxisValues, setXAxisValues] = useState<string[]>([]);
   const [selectedLegend, setSelectedLegend] = useState<Condition>();
+  const [legendValues, setLegendValues] = useState<string[]>([]);
   const [selectedVariable, setSelectedVariable] = useState<string>();
+  const [data, setData] = useState({});
 
   // should come from the URL in the future depending on the user's
   // menu choice (metabolite / protein/ miRNA). Should also become a type.
@@ -66,15 +69,74 @@ const ExploreData: React.FC = () => {
       conditions.find((condition) => condition.name === event.target.value)
     );
   };
+
   const handleSelectLegend = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedLegend(
       conditions.find((condition) => condition.name === event.target.value)
     );
   };
+
   const handleSelectVariable = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
     setSelectedVariable(event.target.value);
+  };
+
+  const handleXAxisValues = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const currentXAxisValues = xAxisValues;
+    let newXAxisValues;
+    if (currentXAxisValues?.includes(event.target.value)) {
+      newXAxisValues = currentXAxisValues.filter(
+        (v) => v !== event.target.value
+      );
+    } else {
+      newXAxisValues = [...currentXAxisValues, event.target.value];
+    }
+    setXAxisValues(newXAxisValues);
+  };
+
+  const handleLegendValues = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const currentLegendValues = legendValues;
+    let newLegendValues;
+    if (currentLegendValues?.includes(event.target.value)) {
+      newLegendValues = currentLegendValues.filter(
+        (v) => v !== event.target.value
+      );
+    } else {
+      newLegendValues = [...currentLegendValues, event.target.value];
+    }
+    setLegendValues(newLegendValues);
+  };
+
+  const createBody = () => {
+    const body = {
+      dataset: dataset,
+      xAxisCondition: {
+        name: selectedXaxis?.name,
+        values: xAxisValues,
+      },
+      legendCondition: {
+        name: selectedLegend?.name,
+        values: legendValues,
+      },
+      variable: selectedVariable,
+    };
+    return JSON.stringify({ filters: body });
+  };
+
+  const getPlotData = async () => {
+    try {
+      const response = await fetch("/plotdata", {
+        method: "POST",
+        body: createBody(),
+      });
+      if (!response.ok) {
+        throw new Error();
+      }
+      setData(response.json);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
@@ -105,12 +167,17 @@ const ExploreData: React.FC = () => {
                 </legend>
                 {selectedXaxis.values.map((value) => (
                   <div key={value}>
-                    <input type="checkbox" id={value} />
+                    <input
+                      type="checkbox"
+                      id={value}
+                      value={value}
+                      onChange={handleXAxisValues}
+                    />
                     <label htmlFor={value}>{value}</label>
                   </div>
                 ))}
                 <div className="my-3">
-                  <input type="checkbox" id="healthy" />
+                  <input type="checkbox" id="healthy" value="healthy" />
                   <label htmlFor="healthy">
                     Include healthy reference samples
                   </label>
@@ -141,12 +208,22 @@ const ExploreData: React.FC = () => {
                 </legend>
                 {selectedLegend.values.map((value) => (
                   <div key={value}>
-                    <input type="checkbox" id={value} />
+                    <input
+                      type="checkbox"
+                      id={value}
+                      value={value}
+                      onChange={handleLegendValues}
+                    />
                     <label htmlFor={value}>{value}</label>
                   </div>
                 ))}
                 <div className="my-3">
-                  <input type="checkbox" id="healthy" />
+                  <input
+                    type="checkbox"
+                    id="healthy"
+                    value="healthy"
+                    onChange={handleLegendValues}
+                  />
                   <label htmlFor="healthy">
                     Include healthy reference samples
                   </label>
@@ -169,7 +246,11 @@ const ExploreData: React.FC = () => {
               ))}
             </select>
           </form>
-          <button type="button" className="btn btn-primary">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => getPlotData()}
+          >
             Create plot
           </button>
         </div>
