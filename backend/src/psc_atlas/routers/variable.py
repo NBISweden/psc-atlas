@@ -6,7 +6,7 @@ from typing import List
 from sqlalchemy import distinct
 
 from psc_atlas.session import get_session
-from psc_atlas.models import Variable
+from psc_atlas.models import Variable, Sample
 
 router = APIRouter()
 
@@ -16,7 +16,9 @@ class VariableNameResponse(BaseModel):
 
 
 @router.get("/names")
-def get_variable_names(contains: str = None, limit: int = None) -> VariableNameResponse:
+def get_variable_names(
+    contains: str = None, limit: int = None, type: str = None
+) -> VariableNameResponse:
     """
     Retrieve a list of distinct variable names from the database.
 
@@ -29,6 +31,10 @@ def get_variable_names(contains: str = None, limit: int = None) -> VariableNameR
         return. If not provided, all variable names matching the filter
         will be returned.
 
+        type (str, optional): The type of samples associated with the
+        variables. If provided, only variable names associated with
+        samples of this type will be returned.
+
     Returns:
         VariableNameResponse: A response model containing a list of
         variable names.
@@ -38,6 +44,8 @@ def get_variable_names(contains: str = None, limit: int = None) -> VariableNameR
     with get_session() as session:
         query = session.query(distinct(Variable.name)).order_by(Variable.name)
 
+        if type:
+            query = query.filter(Variable.samples.any(Sample.type == type))
         if contains:
             query = query.filter(Variable.name.contains(contains))
         if limit:

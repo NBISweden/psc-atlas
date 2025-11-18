@@ -47,11 +47,11 @@ class Sample(Base):
     bilirubin: Mapped[HiLo] = mapped_column(Enum(HiLo), nullable=True)
     alp: Mapped[HiLo] = mapped_column(Enum(HiLo), nullable=True)
 
-    measurements: Mapped[List["Measurement"]] = relationship(
-        "Measurement", cascade="all, delete-orphan"
+    variables: Mapped[List["Variable"]] = relationship(
+        "Variable", secondary="measurements", back_populates="samples"
     )
 
-    __table_args__ = (UniqueConstraint("pscid", "type"),)
+    __table_args__ = (UniqueConstraint("type", "pscid"),)
 
 
 class Variable(Base):
@@ -65,6 +65,10 @@ class Variable(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(32), unique=True)
 
+    samples: Mapped[List["Sample"]] = relationship(
+        "Sample", secondary="measurements", back_populates="variables"
+    )
+
 
 class Measurement(Base):
     """Measurement table to store values for each sample and variable."""
@@ -76,7 +80,7 @@ class Measurement(Base):
     variable_id: Mapped[int] = mapped_column(ForeignKey("variables.id"))
     value: Mapped[float] = mapped_column(Float)
 
-    __table_args__ = (UniqueConstraint("sample_id", "variable_id"),)
+    __table_args__ = (UniqueConstraint("variable_id", "sample_id"),)
 
 
 # "STATS" table models
