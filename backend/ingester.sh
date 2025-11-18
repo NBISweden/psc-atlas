@@ -17,9 +17,9 @@ set -u
 # while successfully loaded CSV files are deleted after processing.
 
 WATCH_DIR="$HOME/vol/uploads"
-EXTRACT_DIR="$HOME/vol/tmp"
-PROCESSED_DIR="$HOME/vol/processed"
-FAILED_DIR="$HOME/vol/failed"
+EXTRACT_DIR="$WATCH_DIR/.tmp"
+PROCESSED_DIR="$WATCH_DIR/processed"
+FAILED_DIR="$WATCH_DIR/failed"
 
 # FAILED_DIR is exported to be visible to the inlined shell script
 # executed by 'find ... -exec sh -c ...'.
