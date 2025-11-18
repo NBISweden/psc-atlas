@@ -19,12 +19,21 @@ class Condition(BaseModel):
 class SampleTypeResponse(BaseModel):
     types: List[str]
     conditions: List[Condition] = [
-        {"name": "psc", "values": [YesNo.YES, YesNo.NO, None]},
-        {"name": "cca", "values": [YesNo.YES, YesNo.NO, None]},
-        {"name": "ibd", "values": [YesNo.YES, YesNo.NO, None]},
-        {"name": "fibrosis", "values": [HiLo.HIGH, HiLo.LOW, None]},
-        {"name": "bilirubin", "values": [HiLo.HIGH, HiLo.LOW, None]},
-        {"name": "alp", "values": [HiLo.HIGH, HiLo.LOW, None]},
+        Condition(name="psc", values=[YesNo.YES, YesNo.NO, None]),
+        Condition(name="cca", values=[YesNo.YES, YesNo.NO, None]),
+        Condition(name="ibd", values=[YesNo.YES, YesNo.NO, None]),
+        Condition(
+            name="fibrosis",
+            values=[HiLo.HIGH, HiLo.LOW, None],
+        ),
+        Condition(
+            name="bilirubin",
+            values=[HiLo.HIGH, HiLo.LOW, None],
+        ),
+        Condition(
+            name="alp",
+            values=[HiLo.HIGH, HiLo.LOW, None],
+        ),
     ]
 
 

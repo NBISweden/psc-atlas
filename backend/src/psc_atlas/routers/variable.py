@@ -17,7 +17,9 @@ class VariableNameResponse(BaseModel):
 
 @router.get("/names")
 def get_variable_names(
-    contains: str = None, limit: int = None, type: str = None
+    contains: str | None = None,
+    limit: int | None = None,
+    type: str | None = None,
 ) -> VariableNameResponse:
     """
     Retrieve a list of distinct variable names from the database.
