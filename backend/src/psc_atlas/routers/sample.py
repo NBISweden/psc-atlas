@@ -1,20 +1,23 @@
 from fastapi import APIRouter
 
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import distinct
 
 from psc_atlas.session import get_session
 from psc_atlas.models import Sample, YesNo, HiLo
 
-from psc_atlas.api_types import Condition
-
 router = APIRouter()
 
 
 class SampleTypeResponse(BaseModel):
     types: List[str]
+
+
+class Condition(BaseModel):
+    name: str
+    values: List[Optional[YesNo | HiLo]]
 
 
 class SampleConditionsResponse(BaseModel):
@@ -34,7 +37,7 @@ def get_sample_types() -> SampleTypeResponse:
         distinct sample types.
     """
 
-    sample_types: list[str] = []
+    sample_types: List[str] = []
     with get_session() as session:
         result = session.query(distinct(Sample.type)).all()
         sample_types = [row[0] for row in result]
@@ -54,6 +57,8 @@ def get_sample_conditions(type: str) -> SampleConditionsResponse:
         SampleConditionsResponse: A response model containing a list of
         conditions applicable to the specified sample type.
     """
+
+    # Note: Until the models are redone, this is a static response.
 
     sample_conditions: List[Condition] = [
         Condition(name="psc", values=[YesNo.YES, YesNo.NO, None]),
