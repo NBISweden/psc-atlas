@@ -3,8 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import styles from "./sidebar.module.scss";
+import Contact from "@/app/components/Contact/Contact";
 
-export default function Sidebar() {
+type SidebarProps = {
+    contact: React.ReactNode;
+};
+
+export default function Sidebar({ contact }: SidebarProps) {
     const [open, setOpen] = useState(true);
     const [underMenuOpen, setUnderMenuOpen] = useState(false);
 
@@ -92,30 +97,7 @@ export default function Sidebar() {
                         </Link>
                     </li>
                 </ul>
-
-                <h3 className="h5 fw-bold mb-2">Contact</h3>
-                <div className={styles["red-line"]}></div>
-                <p className="small mt-3 mb-3">
-                    Sed varius enim lorem ullamcorper dolore aliquam aenean ornare velit
-                    lacus, ac varius enim lorem ullamcorper dolore.
-                </p>
-                <ul className="list-unstyled small">
-                    <li className={`${styles.item} mb-2 d-flex align-items-center gap-2`}>
-                        <i className="bi bi-envelope-fill fs-4 text-primary"></i>
-                        <a href="#">
-                            information@untitled.tld
-                        </a>
-                    </li>
-                    <li className={`${styles.item} mb-2 d-flex align-items-center gap-2`}>
-                        <i className="bi bi-telephone-fill fs-4 text-primary"></i>
-                        (000) 000-0000
-                    </li>
-                    <li className={`${styles.item} mb-2 d-flex align-items-center gap-2`}>
-                        <i className="bi bi-house-fill fs-4 text-primary"></i>
-                        1234 Somewhere Road #8254
-                        Nashville, TN 00000-0000
-                    </li>
-                </ul>
+                {contact}
             </div>
         </aside>
     );
