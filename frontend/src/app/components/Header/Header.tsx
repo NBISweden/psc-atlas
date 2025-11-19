@@ -19,9 +19,14 @@ const Header = () => {
           <i className="bi bi-list fs-3 text-primary"></i>
         </button>
 
-        <a href="#" >
-          <strong>SUPRIM ATLAS</strong>{" "}
-          studying Primary sclerosing cholangitis
+        <a href="#" className="text-decoration-none text-reset">
+          <div className="d-flex flex-column flex-md-row align-items-md-center gap-md-3">
+            <h1 className="m-0">SUPRIM ATLAS</h1>
+            <div>
+              <span className="fs-5 fw-bolder">Accelerating knowledge on Primary Sclerosing Cholangitis</span>
+              <p className="fst-italic m-0">A global open access collaborative resource</p>
+            </div>
+          </div>
         </a>
         <span className="ms-auto text-primary fw-bold">KI</span>
       </header>
