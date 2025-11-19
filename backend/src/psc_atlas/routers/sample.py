@@ -4,9 +4,10 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from sqlalchemy import distinct
+from sqlalchemy import or_
 
 from psc_atlas.session import get_session
-from psc_atlas.models import Sample, YesNo, HiLo
+from psc_atlas.models import Sample, Variable
 
 router = APIRouter()
 
@@ -15,13 +16,13 @@ class SampleTypeResponse(BaseModel):
     types: List[str]
 
 
-class Condition(BaseModel):
+class APICondition(BaseModel):
     name: str
-    values: List[Optional[YesNo | HiLo]]
+    values: List[Optional[str]]
 
 
 class SampleConditionsResponse(BaseModel):
-    conditions: List[Condition]
+    conditions: List[APICondition]
 
 
 @router.get("/types")
@@ -60,21 +61,21 @@ def get_sample_conditions(type: str) -> SampleConditionsResponse:
 
     # Note: Until the models are redone, this is a static response.
 
-    sample_conditions: List[Condition] = [
-        Condition(name="psc", values=[YesNo.YES, YesNo.NO, None]),
-        Condition(name="cca", values=[YesNo.YES, YesNo.NO, None]),
-        Condition(name="ibd", values=[YesNo.YES, YesNo.NO, None]),
-        Condition(
+    sample_conditions: List[APICondition] = [
+        APICondition(name="psc", values=["YES", "NO", None]),
+        APICondition(name="cca", values=["YES", "NO", None]),
+        APICondition(name="ibd", values=["YES", "NO", None]),
+        APICondition(
             name="fibrosis",
-            values=[HiLo.HIGH, HiLo.LOW, None],
+            values=["HIGH", "LOW", None],
         ),
-        Condition(
+        APICondition(
             name="bilirubin",
-            values=[HiLo.HIGH, HiLo.LOW, None],
+            values=["HIGH", "LOW", None],
         ),
-        Condition(
+        APICondition(
             name="alp",
-            values=[HiLo.HIGH, HiLo.LOW, None],
+            values=["HIGH", "LOW", None],
         ),
     ]
     return SampleConditionsResponse(conditions=sample_conditions)

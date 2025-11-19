@@ -6,7 +6,7 @@ from typing import List
 from sqlalchemy import distinct
 
 from psc_atlas.session import get_session
-from psc_atlas.models import Variable, Sample
+from psc_atlas.models import Variable, Sample, Measurement
 
 router = APIRouter()
 
@@ -47,7 +47,7 @@ def get_variable_names(
         query = session.query(distinct(Variable.name)).order_by(Variable.name)
 
         if type:
-            query = query.filter(Variable.samples.any(Sample.type == type))
+            query = query.join(Measurement).join(Sample).filter(Sample.type == type)
         if contains:
             query = query.filter(Variable.name.contains(contains))
         if limit:

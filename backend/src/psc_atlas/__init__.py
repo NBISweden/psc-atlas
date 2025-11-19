@@ -1,6 +1,7 @@
 from psc_atlas.routers import core
 from psc_atlas.routers import sample
 from psc_atlas.routers import variable
+from psc_atlas.routers import measurement
 from fastapi import FastAPI
 import os
 
@@ -21,5 +22,9 @@ def create_app(root_path=DEFAULT_ROOT_PATH):
     app.include_router(
         variable.router,
         prefix="/v1/variable",
+    )
+    app.include_router(
+        measurement.router,
+        prefix="/v1/measurement",
     )
     return app
