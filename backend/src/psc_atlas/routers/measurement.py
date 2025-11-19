@@ -53,23 +53,29 @@ def get_measurements(
         query = query.join(Sample).filter(Sample.type == type)
 
         for condition in conditions:
-            q = query
+            for value in condition.values:
+                # Make a copy of the base query for each condition
+                # value
+                q = query
 
-            if condition.name == "psc":
-                q = q.filter(Sample.psc.in_(condition.values))
-            elif condition.name == "cca":
-                q = q.filter(Sample.cca.in_(condition.values))
-            elif condition.name == "ibd":
-                q = q.filter(Sample.ibd.in_(condition.values))
-            elif condition.name == "fibrosis":
-                q = q.filter(Sample.fibrosis.in_(condition.values))
-            elif condition.name == "bilirubin":
-                q = q.filter(Sample.bilirubin.in_(condition.values))
-            elif condition.name == "alp":
-                q = q.filter(Sample.alp.in_(condition.values))
+                if condition.name == "psc":
+                    q = q.filter(Sample.psc == value)
+                elif condition.name == "cca":
+                    q = q.filter(Sample.cca == value)
+                elif condition.name == "ibd":
+                    q = q.filter(Sample.ibd == value)
+                elif condition.name == "fibrosis":
+                    q = q.filter(Sample.fibrosis == value)
+                elif condition.name == "bilirubin":
+                    q = q.filter(Sample.bilirubin == value)
+                elif condition.name == "alp":
+                    q = q.filter(Sample.alp == value)
 
-            measurements.append(
-                APIMeasurement(condition=condition, values=[m.value for m in q.all()])
-            )
+                measurements.append(
+                    APIMeasurement(
+                        condition=APICondition(name=condition.name, values=[value]),
+                        values=[m.value for m in q.all()],
+                    )
+                )
 
     return MeasurementsResponse(measurements=measurements)
