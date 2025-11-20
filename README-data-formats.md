@@ -113,12 +113,13 @@ HEALTHY01,,NA,15.3,8.4,2.9
 HEALTHY02,,NA,14.7,9.0,3.1
 ```
 
-Encoding healty controls as a `YES`/`NO` metadata field. Here, healthy
+Encoding healthy controls as a `YES`/`NO` metadata field. Here, healthy
 controls have `YES` for the `meta_healthy` field, while patient samples
 have `NO`. Additional metadata fields represent different conditions.
 Again, the application makes no special distinction between healthy
 controls and patient samples; this is just an example of how to
 represent such data.
+
 ``` csv
 sample_id,sample_date,meta_healthy,meta_alp,meta_bilirubin,metabolite_A,metabolite_B,metabolite_C
 1,2023-08-15,NO,LOW,HIGH,0.56,1.23,2.34
