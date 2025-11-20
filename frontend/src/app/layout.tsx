@@ -3,7 +3,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./globals.scss";
 import Header from "./components/Header/Header";
-import Sidebar from "./components/Sidebar/Sidebar";
+import SidebarContainer from "@/app/components/Sidebar/SidebarContainer";
 
 export const metadata: Metadata = {
   title: "PSC Atlas",
@@ -30,7 +30,7 @@ export default function RootLayout({
       </head>
       <body>
       <div className="d-flex min-vh-100">
-          <Sidebar />
+          <SidebarContainer />
           <div className="flex-grow-1 d-flex flex-column">
               <Header />
               <main className="flex-grow-1 px-4 py-4">{children}</main>
