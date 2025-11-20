@@ -6,7 +6,7 @@ const Home = () => {
   return (
     <>
       <section>
-        <h1>PSC Atlas</h1>
+        <h2>PSC Atlas</h2>
         <p>Hello world!</p>
         <button type="button" className="btn btn-primary">
           Button test
