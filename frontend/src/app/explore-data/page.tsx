@@ -95,34 +95,37 @@ const ExploreData: React.FC = () => {
     setLegendValues(newLegendValues);
   };
 
-  const createBody = () => {
-    const body = {
-      dataset: dataset,
-      conditions: [
-        {
-          name: selectedXaxis?.name,
-          values: xAxisValues,
-        },
-        {
-          name: selectedLegend?.name,
-          values: legendValues,
-        },
-      ],
-      variable: selectedVariable,
-    };
-    return JSON.stringify({ filters: body });
+  const createConditions = () => {
+    const body = [
+      {
+        name: selectedXaxis?.name,
+        values: xAxisValues,
+      },
+      {
+        name: selectedLegend?.name,
+        values: legendValues,
+      },
+    ];
+    return JSON.stringify(body);
   };
 
   const getPlotData = async () => {
     try {
-      const response = await fetch("/plotdata", {
-        method: "POST",
-        body: createBody(),
-      });
+      const response = await fetch(
+        `/api/v1/measurement/?type=${dataset}&variable=${selectedVariable}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: createConditions(),
+        }
+      );
       if (!response.ok) {
         throw new Error();
       }
-      setData(response.json);
+      const plotData = await response.json();
+      console.log("We got the data!!", plotData);
     } catch (error) {
       console.log(error);
     }
