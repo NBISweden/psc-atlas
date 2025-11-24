@@ -16,48 +16,46 @@ const ExploreData: React.FC = () => {
 
   // should come from the URL in the future depending on the user's
   // menu choice (metabolite / protein/ miRNA). Should also become a type.
-  const dataset = "protein";
-
-  const params = React.useMemo(
-    () => new URLSearchParams({ dataset }),
-    [dataset]
-  );
+  const dataset = "proteins";
 
   type Condition = {
     name: string;
     values: string[];
   };
 
+  type ConditionResponse = {
+    conditions: Condition[];
+  };
+
+  type Variable = {
+    names: string[];
+  };
+
   const getConditions = async () => {
     try {
-      const response = await fetch(`/conditions?${params.toString()}`);
+      const response = await fetch(`/api/v1/sample/conditions?type=${dataset}`);
       if (!response.ok) {
         throw new Error();
       }
-      const conditions: Condition[] = await response.json();
-      setConditions(conditions);
+      const fetchedConditions: ConditionResponse = await response.json();
+      setConditions(fetchedConditions.conditions);
     } catch (error) {
-      console.log(error);
-      // for now hardcoded:
-      console.log(exampleData.conditions);
-      setConditions(exampleData.conditions);
+      console.log("Error finding conditions:", error);
+      setConditions([]);
     }
     return;
   };
 
   const getVariables = async () => {
     try {
-      const response = await fetch(`/variables?${params.toString()}`);
+      const response = await fetch(`/api/v1/variable/names?type=${dataset}`);
       if (!response.ok) {
         throw new Error();
       }
-      const variables: string[] = await response.json();
-      setVariables(variables);
+      const fetchedVariables: Variable = await response.json();
+      setVariables(fetchedVariables.names);
     } catch (error) {
-      console.log(error);
-      // for now hardcoded:
-      console.log(exampleData.variables);
-      setVariables(exampleData.variables);
+      console.log("Error finding variables", error);
     }
     return;
   };
@@ -143,12 +141,15 @@ const ExploreData: React.FC = () => {
               onChange={handleSelectXaxis}
               className="form-select mb-3"
             >
-              <option value="" disabled></option>
-              {conditions.map((condition) => (
-                <option key={condition.name} value={condition.name}>
-                  {condition.name}
-                </option>
-              ))}
+              <option value="" disabled>
+                No condition selected
+              </option>
+              {conditions &&
+                conditions.map((condition) => (
+                  <option key={"x-" + condition.name} value={condition.name}>
+                    {condition.name}
+                  </option>
+                ))}
             </select>
 
             {selectedXaxis && (
@@ -156,30 +157,34 @@ const ExploreData: React.FC = () => {
                 <legend className="fs-6">
                   Which values should be included?
                 </legend>
-                {selectedXaxis.values.map((value) => (
-                  <div key={value} className="form-check">
+                {selectedXaxis.values
+                  .filter((value) => value !== null)
+                  .map((value) => (
+                    <div key={value} className="form-check">
+                      <input
+                        type="checkbox"
+                        id={value}
+                        value={value}
+                        onChange={handleXAxisValues}
+                        className="form-check-input"
+                      />
+                      <label htmlFor={value}>{value}</label>
+                    </div>
+                  ))}
+                {selectedXaxis.values.some((value) => value == null) && (
+                  <div className="form-check my-3">
                     <input
                       type="checkbox"
-                      id={value}
-                      value={value}
+                      id="xHealthy"
+                      value="NA"
                       onChange={handleXAxisValues}
                       className="form-check-input"
                     />
-                    <label htmlFor={value}>{value}</label>
+                    <label htmlFor="xHealthy">
+                      Include healthy reference samples
+                    </label>
                   </div>
-                ))}
-                <div className="form-check my-3">
-                  <input
-                    type="checkbox"
-                    id="xHealthy"
-                    value="NA"
-                    onChange={handleXAxisValues}
-                    className="form-check-input"
-                  />
-                  <label htmlFor="xHealthy">
-                    Include healthy reference samples
-                  </label>
-                </div>
+                )}
               </fieldset>
             )}
 
@@ -191,12 +196,13 @@ const ExploreData: React.FC = () => {
               onChange={handleSelectLegend}
               className="form-select mb-3"
             >
-              <option value=""></option>
-              {conditions.map((condition) => (
-                <option key={condition.name} value={condition.name}>
-                  {condition.name}
-                </option>
-              ))}
+              <option value="">No condition selected</option>
+              {conditions &&
+                conditions.map((condition) => (
+                  <option key={condition.name} value={condition.name}>
+                    {condition.name}
+                  </option>
+                ))}
             </select>
 
             {selectedLegend && (
@@ -204,30 +210,34 @@ const ExploreData: React.FC = () => {
                 <legend className="fs-6">
                   Which values should be included?
                 </legend>
-                {selectedLegend.values.map((value) => (
-                  <div key={value} className="form-check">
+                {selectedLegend.values
+                  .filter((value) => value !== null)
+                  .map((value) => (
+                    <div key={value} className="form-check">
+                      <input
+                        type="checkbox"
+                        id={value}
+                        value={value}
+                        onChange={handleLegendValues}
+                        className="form-check-input"
+                      />
+                      <label htmlFor={value}>{value}</label>
+                    </div>
+                  ))}
+                {selectedLegend.values.some((value) => value == null) && (
+                  <div className="form-check my-3">
                     <input
                       type="checkbox"
-                      id={value}
-                      value={value}
+                      id="legendHealthy"
+                      value="NA"
                       onChange={handleLegendValues}
                       className="form-check-input"
                     />
-                    <label htmlFor={value}>{value}</label>
+                    <label htmlFor="legendHealthy">
+                      Include healthy reference samples
+                    </label>
                   </div>
-                ))}
-                <div className="form-check my-3">
-                  <input
-                    type="checkbox"
-                    id="legendHealthy"
-                    value="NA"
-                    onChange={handleLegendValues}
-                    className="form-check-input"
-                  />
-                  <label htmlFor="legendHealthy">
-                    Include healthy reference samples
-                  </label>
-                </div>
+                )}
               </fieldset>
             )}
 
@@ -240,11 +250,12 @@ const ExploreData: React.FC = () => {
               className="form-select"
             >
               <option value="" disabled></option>
-              {variables.map((variable) => (
-                <option key={variable} value={variable}>
-                  {variable}
-                </option>
-              ))}
+              {variables &&
+                variables.map((variable) => (
+                  <option key={variable} value={variable}>
+                    {variable}
+                  </option>
+                ))}
             </select>
           </form>
           <button
