@@ -12,7 +12,7 @@ $btn-font-weight: 700;
 $btn-padding-x: 1.25rem;
 $btn-padding-y: 0.5rem;
 $btn-active-color: #fff;
-$primary: #f56a6a;
+$primary: #ae4d4d;
 
 // 3. Include remainder of required Bootstrap stylesheets (including any separate color mode stylesheets)
 @import "../../node_modules/bootstrap/scss/variables";
@@ -52,10 +52,11 @@ $spacers: map-merge($spacers, $custom-spacers);
 :root {
   --secondary-background: #f5f6f7;
   --primary-text: #3d4449;
-  --secondary-text: #7f888f;
+  --secondary-text: #656c72;
   --light-grey: #d2d7d9;
   --accent-color: #f56a6a;
   --accent-color-hover: #f67878;
+  --dark-coral: #ae4d4d;
   --heading-font: "Roboto Slab", serif;
   --canvas-font: "Open Sans", sans-serif;
 }
@@ -93,6 +94,10 @@ h6 {
   font-family: var(--heading-font);
   color: var(--primary-text);
   font-weight: 700;
+}
+
+.bi {
+  color: var(--accent-color) !important;
 }
 
 // Overriding some of Bootstrap's button styles
