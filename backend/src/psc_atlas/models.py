@@ -18,58 +18,86 @@ class Base(DeclarativeBase):
 
 
 class Sample(Base):
-    __tablename__ = "samples"
+    __tablename__ = "sample"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    type: Mapped[str] = mapped_column(String(16))
-    pscid: Mapped[str] = mapped_column(String(16))
-    sampling_date: Mapped[date] = mapped_column(Date, nullable=True)
-    psc: Mapped[str] = mapped_column(String(16), nullable=True)
-    cca: Mapped[str] = mapped_column(String(16), nullable=True)
-    ibd: Mapped[str] = mapped_column(String(16), nullable=True)
-    fibrosis: Mapped[str] = mapped_column(String(16), nullable=True)
-    bilirubin: Mapped[str] = mapped_column(String(16), nullable=True)
-    alp: Mapped[str] = mapped_column(String(16), nullable=True)
+    type: Mapped[str] = mapped_column(String(32))
+    sample_id: Mapped[str] = mapped_column(String(32))
+    sample_date: Mapped[date] = mapped_column(Date, nullable=True)
 
+    conditions: Mapped[List["Condition"]] = relationship(
+        "Condition", back_populates="sample"
+    )
     measurements: Mapped[List["Measurement"]] = relationship(
         "Measurement", back_populates="sample"
     )
 
-    __table_args__ = (UniqueConstraint("type", "pscid"),)
+    __table_args__ = (UniqueConstraint("type", "sample_id"),)
 
 
-class Variable(Base):
+class ConditionVariable(Base):
+    __tablename__ = "condition_variable"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(32), unique=True)
+
+    conditions: Mapped[List["Condition"]] = relationship(
+        "Condition", back_populates="condition_variable"
+    )
+
+
+class Condition(Base):
+    __tablename__ = "condition"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sample_id: Mapped[int] = mapped_column(ForeignKey("sample.id"))
+    condition_variable_id: Mapped[int] = mapped_column(
+        ForeignKey("condition_variable.id")
+    )
+    value: Mapped[str] = mapped_column(String(32))
+
+    sample: Mapped["Sample"] = relationship("Sample", back_populates="conditions")
+    condition_variable: Mapped["ConditionVariable"] = relationship(
+        "ConditionVariable", back_populates="conditions"
+    )
+
+    __table_args__ = (UniqueConstraint("condition_variable_id", "sample_id"),)
+
+
+class MeasurementVariable(Base):
     """
     Variable table to store metabolite, miRNA, and protein names.
     The table is referenced by the measurements and base_stats tables.
     """
 
-    __tablename__ = "variables"
+    __tablename__ = "measurement_variable"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(32), unique=True)
 
     measurements: Mapped[List["Measurement"]] = relationship(
-        "Measurement", back_populates="variable"
+        "Measurement", back_populates="measurment_variable"
     )
 
 
 class Measurement(Base):
     """Measurement table to store values for each sample and variable."""
 
-    __tablename__ = "measurements"
+    __tablename__ = "measurement"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    sample_id: Mapped[int] = mapped_column(ForeignKey("samples.id"))
-    variable_id: Mapped[int] = mapped_column(ForeignKey("variables.id"))
+    sample_id: Mapped[int] = mapped_column(ForeignKey("sample.id"))
+    measurement_variable_id: Mapped[int] = mapped_column(
+        ForeignKey("measurement_variable.id")
+    )
     value: Mapped[float] = mapped_column(Float)
 
-    variable: Mapped["Variable"] = relationship(
-        "Variable", back_populates="measurements"
+    measurment_variable: Mapped["MeasurementVariable"] = relationship(
+        "MeasurementVariable", back_populates="measurements"
     )
     sample: Mapped["Sample"] = relationship("Sample", back_populates="measurements")
 
-    __table_args__ = (UniqueConstraint("variable_id", "sample_id"),)
+    __table_args__ = (UniqueConstraint("measurement_variable_id", "sample_id"),)
 
 
 # "STATS" table models
@@ -81,7 +109,7 @@ class BaseStats(Base):
     __tablename__ = "base_stats"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    variable_id: Mapped[int] = mapped_column(ForeignKey("variables.id"))
+    variable_id: Mapped[int] = mapped_column(ForeignKey("measurement_variable.id"))
     condition: Mapped[str] = mapped_column(
         String(16)
     )  # CCA, IBD, ALP, bilirubin, fibrosis
