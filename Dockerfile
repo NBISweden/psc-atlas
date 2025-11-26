@@ -105,13 +105,13 @@ RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
 	uv sync --frozen
 
 COPY --chown="$UID:$GID" backend/src src
-COPY --chown="$UID:$GID" backend/pyproject.toml .
 
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
     --mount=type=cache,id=mypy-cache,uid="$UID",target="$MYPY_CACHE_DIR" \
 	uv run mypy .
 
 RUN --mount=type=cache,id=uv-cache,uid="$UID",target="$UV_CACHE_DIR" \
+    --mount=type=bind,source=backend/pyproject.toml,target=pyproject.toml \
 	uv run python -m build
 
 # Note: The built wheel file is installed in the "proxy-prod" stage.
