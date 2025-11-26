@@ -8,7 +8,10 @@ from pathlib import Path
 
 from sqlalchemy.exc import IntegrityError
 
-from psc_atlas.models import Sample, Measurement, Variable
+from psc_atlas.models import Sample
+from psc_atlas.models import ConditionVariable, Condition
+from psc_atlas.models import MeasurementVariable, Measurement
+
 from psc_atlas.models import (
     BaseStats,
     MetaboliteStats,
@@ -52,30 +55,39 @@ def load_data_file(file_path: Path):
     with file_path.open("r") as f:
         reader = csv.DictReader(f)
 
-        sample_cols = {
-            "PSCID",
-            "sampling_date",
-            "PSC",
-            "CCA",
-            "IBD",
-            "Fibrosis",
-            "Bilirubin",
-            "ALP",
-        }
-
-        measurement_cols = set(reader.fieldnames or []) - sample_cols
+        # For the current version of the data, column 1 is ignored,
+        # column 2 is the sample ID, column 3 is the sample date,
+        # columns 4-9 are condition metadata (PSC, CCA, IBD, Fibrosis,
+        # Bilirubin, ALP), and columns 10 and beyond are the actual
+        # measurement
 
         with get_session() as session:
-            variable_cache = {}
+            condition_variable_cache = {}
+            measurement_variable_cache = {}
 
-            for name in measurement_cols:
-                variable = session.query(Variable).filter_by(name=name).first()
-                if not variable:
-                    variable = Variable(name=name)
-                    session.add(variable)
-                    session.flush()  # To get variable.id
+            fieldnames = reader.fieldnames or []
 
-                variable_cache[name] = variable.id
+            for name in fieldnames[3:10]:
+                condition_variable = (
+                    session.query(ConditionVariable).filter_by(name=name)
+                ).first()
+                if not condition_variable:
+                    condition_variable = ConditionVariable(name=name)
+                    session.add(condition_variable)
+                    session.flush()  # To get condition_variable.id
+
+                condition_variable_cache[name] = condition_variable.id
+
+            for name in fieldnames[10:]:
+                measurment_variable = (
+                    session.query(MeasurementVariable).filter_by(name=name)
+                ).first()
+                if not measurment_variable:
+                    measurment_variable = MeasurementVariable(name=name)
+                    session.add(measurment_variable)
+                    session.flush()  # To get measurment_variable.id
+
+                measurement_variable_cache[name] = measurment_variable.id
 
             progress_time = time.time()
 
@@ -84,41 +96,39 @@ def load_data_file(file_path: Path):
                 savepoint = session.begin_nested()
 
                 try:
-                    if row["PSCID"].strip().lower() == "na" or not row["PSCID"].strip():
-                        row["PSCID"] = f"NA_row{reader.line_num}"
-
                     sample = Sample(
                         type=data_type,
-                        pscid=row["PSCID"],
-                        sampling_date=parse_date(row["sampling_date"]),
-                        psc=row["PSC"],
-                        cca=row["CCA"],
-                        ibd=row["IBD"],
-                        fibrosis=row["Fibrosis"],
-                        bilirubin=row["Bilirubin"],
-                        alp=row["ALP"],
+                        sample_id=row[fieldnames[1]],
+                        sample_date=parse_date(row[fieldnames[2]]),
                     )
                     session.add(sample)
                     session.flush()  # To get sample.id
 
+                    for name in condition_variable_cache:
+                        condition = Condition(
+                            sample_id=sample.id,
+                            condition_variable_id=condition_variable_cache[name],
+                            value=row[name],
+                        )
+                        session.add(condition)
+
+                    for name in measurement_variable_cache:
+                        measurement = Measurement(
+                            sample_id=sample.id,
+                            measurement_variable_id=measurement_variable_cache[name],
+                            value=float(row[name]),
+                        )
+                        session.add(measurement)
+
                     savepoint.commit()
 
                 except IntegrityError:
-                    # Rollback to savepoint on error (e.g., duplicate
-                    # (type, pscid)).
+                    # Rollback to savepoint on error
                     savepoint.rollback()
                     logger.warning(
-                        f"Skipping duplicate sample entry for PSCID {row['PSCID']} of type {data_type}."
+                        f"Skipping duplicate sample entry for sample ID {row[fieldnames[1]]}."
                     )
                     continue
-
-                for name in measurement_cols:
-                    measurement = Measurement(
-                        sample_id=sample.id,
-                        variable_id=variable_cache[name],
-                        value=float(row[name]),
-                    )
-                    session.add(measurement)
 
                 # Print progress every 5 seconds.
                 current_time = time.time()
@@ -161,9 +171,13 @@ def load_stats_file(file_path: Path):
 
             for row in reader:
                 variable_name = row["Variable"]
-                variable = session.query(Variable).filter_by(name=variable_name).first()
+                variable = (
+                    session.query(MeasurementVariable)
+                    .filter_by(name=variable_name)
+                    .first()
+                )
                 if not variable:
-                    variable = Variable(name=variable_name)
+                    variable = MeasurementVariable(name=variable_name)
                     session.add(variable)
                     session.flush()  # To get variable.id
 
