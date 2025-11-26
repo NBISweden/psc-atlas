@@ -16,7 +16,7 @@ const Header = () => {
             onClick={toggleSidebar}
             aria-label="Toggle sidebar"
         >
-          <i className="bi bi-list fs-3 text-primary"></i>
+          <i className="bi bi-list fs-3"></i>
         </button>
 
         <a href="#" className="text-decoration-none text-reset">

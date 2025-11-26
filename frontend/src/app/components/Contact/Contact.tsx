@@ -52,7 +52,7 @@ export default async function Contact() {
             )}
             <ul className="list-unstyled small">
                 <li className={`${styles.item} mb-2 d-flex align-items-center gap-2`}>
-                    <i className="bi bi-envelope-fill fs-4 text-primary"></i>
+                    <i className="bi bi-envelope-fill fs-4"></i>
                     {data.email ?
                         (<a href={`mailto:${data.email}`}>{data.email}</a>) : (
                         <p className="small mt-3 mb-3"><em>Email is missing</em></p>
