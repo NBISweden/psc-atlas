@@ -56,10 +56,10 @@ def load_data_file(file_path: Path):
         reader = csv.DictReader(f)
 
         # For the current version of the data, column 1 is ignored,
-        # column 2 is the sample ID, column 3 is the sample date,
-        # columns 4-9 are condition metadata (PSC, CCA, IBD, Fibrosis,
-        # Bilirubin, ALP), and columns 10 and beyond are the actual
-        # measurement
+        # column 2 is the sample ID, column 3 is the sample date, column
+        # 4 is "PSCID" (ignored), columns 5-9 are condition metadata
+        # (PSC, CCA, IBD, Fibrosis, Bilirubin, ALP), and columns 10 and
+        # beyond are the actual measurement
 
         with get_session() as session:
             condition_variable_cache = {}
@@ -67,7 +67,7 @@ def load_data_file(file_path: Path):
 
             fieldnames = reader.fieldnames or []
 
-            for name in fieldnames[3:10]:
+            for name in fieldnames[4:10]:
                 condition_variable = (
                     session.query(ConditionVariable).filter_by(name=name)
                 ).first()
