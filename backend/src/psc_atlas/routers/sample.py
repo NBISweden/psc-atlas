@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from sqlalchemy import distinct
+from sqlalchemy.orm import aliased
 
 from psc_atlas.session import get_session
 from psc_atlas.models import Sample
@@ -165,31 +166,72 @@ def get_sample_measurements(
     measurements: List[APIMeasurement] = []
 
     with get_session() as session:
-        # Build the query for measurements
-        query = (
-            session.query(Measurement)
-            .join(MeasurementVariable)
-            .join(Sample)
-            .join(Condition)
-            .join(ConditionVariable)
-            .filter(Sample.type == type)
-            .filter(MeasurementVariable.name == variable)
-        )
+        # Create aliases for condition and condition variable tables.
+        aliases = {}
+        for condition in conditions:
+            condvar_alias = aliased(ConditionVariable, name="cv_" + condition.name)
+            cond_alias = aliased(Condition, name="c_" + condition.name)
+            aliases[condition.name] = (condvar_alias, cond_alias)
 
+        # Build the base query that will extract the measurement values
+        # for the specified variable and sample type.  We need to be
+        # able tell which condition variable and value each measurement
+        # corresponds to, so we include those in the select statement.
+        query = session.query(Measurement.value)
+        for condition in conditions:
+            condvar_alias, cond_alias = aliases[condition.name]
+            query = query.add_columns(condvar_alias.name, cond_alias.value)
+
+        query = query.join(MeasurementVariable)
+        query = query.join(Sample)
+        query = query.filter(Sample.type == type)
+        query = query.filter(MeasurementVariable.name == variable)
+
+        # Join with conditions, once for each condition provided.
+        # Condition are joined to sample via sample ID, and condition
+        # variables are joined to conditions via condition variable ID.
+        for condition in conditions:
+            condvar_alias, cond_alias = aliases[condition.name]
+            query = query.join(cond_alias, cond_alias.sample_id == Sample.id)
+            query = query.join(
+                condvar_alias, condvar_alias.id == cond_alias.condition_variable_id
+            )
+            query = query.filter(condvar_alias.name == condition.name)
+            query = query.filter(cond_alias.value.in_(condition.values))
+
+        # Execute the query and group results by condition variable and
+        # value.
+        result = query.all()
+        measurement_dict: dict[tuple[str, str], List[float]] = {}
+
+        # Initialize the measurement dictionary with empty lists.
         for condition in conditions:
             for value in condition.values:
-                measurements.append(
-                    APIMeasurement(
-                        variable=variable,
-                        condition=APICondition(name=condition.name, values=[value]),
-                        values=[
-                            measurement.value
-                            for measurement in query.filter(
-                                ConditionVariable.name == condition.name,
-                                Condition.value == value,
-                            ).all()
-                        ],
-                    )
+                key = (condition.name, value)
+                measurement_dict[key] = []
+
+        # Populate the measurement dictionary with values from the query
+        # result.
+        for row in result:
+            measurement_value = row[0]
+            condition_data = row[1:]
+
+            for i in range(0, len(condition_data), 2):
+                condvar_name = condition_data[i]
+                cond_value = condition_data[i + 1]
+                key = (condvar_name, cond_value)
+                measurement_dict[key].append(measurement_value)
+
+        # Create APIMeasurement objects from the measurement dictionary.
+        for key in measurement_dict:
+            condvar_name, cond_value = key
+            values = measurement_dict[key]
+            measurements.append(
+                APIMeasurement(
+                    variable=variable,
+                    condition=APICondition(name=condvar_name, values=[cond_value]),
+                    values=values,
                 )
+            )
 
     return SampleMeasurementResponse(measurements=measurements)
