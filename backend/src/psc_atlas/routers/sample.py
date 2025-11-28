@@ -21,7 +21,7 @@ class APICondition(BaseModel):
 
 class APIMeasurement(BaseModel):
     variable: str
-    condition: APICondition
+    conditions: List[APICondition]
     values: List[float]
 
 
@@ -180,7 +180,8 @@ def get_sample_measurements(
         query = session.query(Measurement.value)
         for condition in conditions:
             condvar_alias, cond_alias = aliases[condition.name]
-            query = query.add_columns(condvar_alias.name, cond_alias.value)
+            query = query.add_column(condvar_alias.name)
+            query = query.add_column(cond_alias.value)
 
         query = query.join(MeasurementVariable)
         query = query.join(Sample)
@@ -199,39 +200,35 @@ def get_sample_measurements(
             query = query.filter(condvar_alias.name == condition.name)
             query = query.filter(cond_alias.value.in_(condition.values))
 
-        # Execute the query and group results by condition variable and
-        # value.
-        result = query.all()
-        measurement_dict: dict[tuple[str, str], List[float]] = {}
+        # Execute the query and extract the measurement values for
+        # each combination of condition variable and condition: 
+        result = query.order_by(Sample.id).all()
+        measurement_dict: dict = {}
 
-        # Initialize the measurement dictionary with empty lists.
-        for condition in conditions:
-            for value in condition.values:
-                key = (condition.name, value)
-                measurement_dict[key] = []
-
-        # Populate the measurement dictionary with values from the query
-        # result.
         for row in result:
             measurement_value = row[0]
-            condition_data = row[1:]
+            # The rest of the row contains pairs of condition variable
+            # name and condition value; we need to keep track of these
+            # to group the measurements correctly.
+            condition_key = tuple((row[i], row[i + 1]) for i in range(1, len(row), 2))
 
-            for i in range(0, len(condition_data), 2):
-                condvar_name = condition_data[i]
-                cond_value = condition_data[i + 1]
-                key = (condvar_name, cond_value)
-                measurement_dict[key].append(measurement_value)
+            if condition_key not in measurement_dict:
+                measurement_dict[condition_key] = []
 
-        # Create APIMeasurement objects from the measurement dictionary.
-        for key in measurement_dict:
-            condvar_name, cond_value = key
-            values = measurement_dict[key]
+            measurement_dict[condition_key].append(measurement_value)
+
+        for condition_key, values in measurement_dict.items():
+            api_conditions = [
+                APICondition(name=cond_var, values=[cond_value])
+                for cond_var, cond_value in condition_key
+            ]
             measurements.append(
                 APIMeasurement(
                     variable=variable,
-                    condition=APICondition(name=condvar_name, values=[cond_value]),
+                    conditions=api_conditions,
                     values=values,
                 )
             )
+
 
     return SampleMeasurementResponse(measurements=measurements)
