@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import exampleData from "./../example-data.json";
+import React, { useEffect, useState, useMemo } from "react";
+import Plot from "../components/Plot/Plot";
 import { toggleArray } from "../utils";
 
 const ExploreData: React.FC = () => {
@@ -12,7 +12,14 @@ const ExploreData: React.FC = () => {
   const [selectedLegend, setSelectedLegend] = useState<Condition>();
   const [legendValues, setLegendValues] = useState<string[]>([]);
   const [selectedVariable, setSelectedVariable] = useState<string>();
-  const [data, setData] = useState({});
+  const [data, setData] = useState<MeasurementResponse[]>([]);
+  const [plotInfo, setPlotInfo] = useState<PlotInfo>({
+    xAxisVar: "",
+    legendVar: "",
+    xAxisValues: [],
+    legendValues: [],
+    violinColors: ["blue", "pink", "green"],
+  });
 
   // should come from the URL in the future depending on the user's
   // menu choice (metabolite / protein/ miRNA). Should also become a type.
@@ -27,8 +34,22 @@ const ExploreData: React.FC = () => {
     conditions: Condition[];
   };
 
-  type Variable = {
-    names: string[];
+  type VariableResponse = {
+    variables: string[];
+  };
+
+  type MeasurementResponse = {
+    variable: string;
+    conditions: Condition[];
+    values: number[];
+  };
+
+  type PlotInfo = {
+    xAxisVar: string;
+    legendVar: string;
+    xAxisValues: string[];
+    legendValues: string[];
+    violinColors: string[];
   };
 
   const getConditions = async () => {
@@ -48,12 +69,12 @@ const ExploreData: React.FC = () => {
 
   const getVariables = async () => {
     try {
-      const response = await fetch(`/api/v1/variable/names?type=${dataset}`);
+      const response = await fetch(`/api/v1/sample/variables?type=${dataset}`);
       if (!response.ok) {
         throw new Error();
       }
-      const fetchedVariables: Variable = await response.json();
-      setVariables(fetchedVariables.names);
+      const fetchedVariables: VariableResponse = await response.json();
+      setVariables(fetchedVariables.variables);
     } catch (error) {
       console.log("Error finding variables", error);
     }
@@ -66,17 +87,17 @@ const ExploreData: React.FC = () => {
   }, []);
 
   const handleSelectXaxis = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setXAxisValues([]);
     setSelectedXaxis(
       conditions.find((condition) => condition.name === event.target.value)
     );
-    setXAxisValues([]);
   };
 
   const handleSelectLegend = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setLegendValues([]);
     setSelectedLegend(
       conditions.find((condition) => condition.name === event.target.value)
     );
-    setLegendValues([]);
   };
 
   const handleSelectVariable = (
@@ -101,18 +122,25 @@ const ExploreData: React.FC = () => {
         name: selectedXaxis?.name,
         values: xAxisValues,
       },
-      {
+    ];
+    selectedLegend &&
+      body.push({
         name: selectedLegend?.name,
         values: legendValues,
-      },
-    ];
+      });
     return JSON.stringify(body);
   };
 
-  const getPlotData = async () => {
+  const getData = async () => {
+    const currentPlotInfo = plotInfo;
+    currentPlotInfo.xAxisVar = selectedXaxis ? selectedXaxis.name : "";
+    currentPlotInfo.legendVar = selectedLegend ? selectedLegend.name : "";
+    currentPlotInfo.xAxisValues = xAxisValues;
+    currentPlotInfo.legendValues = legendValues;
+    setPlotInfo(currentPlotInfo);
     try {
       const response = await fetch(
-        `/api/v1/measurement/?type=${dataset}&variable=${selectedVariable}`,
+        `/api/v1/sample/measurements?type=${dataset}&variable=${selectedVariable}`,
         {
           method: "POST",
           headers: {
@@ -124,12 +152,71 @@ const ExploreData: React.FC = () => {
       if (!response.ok) {
         throw new Error();
       }
-      const plotData = await response.json();
-      console.log("We got the data!!", plotData);
+      const data = await response.json();
+      console.log("We got the data!!", data);
+      setData(data.measurements);
     } catch (error) {
       console.log(error);
     }
   };
+
+  const calculateViolinData = (
+    data: MeasurementResponse[],
+    legendValue: string,
+    legendVar: string,
+    xAxisVar: string
+  ): [string[], number[]] => {
+    if (!data || data.length === 0) return [[], []];
+
+    const filtered = data.filter((item) =>
+      item.conditions.some(
+        (c) => c.name === legendVar && c.values.includes(legendValue)
+      )
+    );
+
+    const x: string[] = [];
+    const y: number[] = [];
+
+    filtered.forEach((obj) => {
+      // push all y values
+      y.push(...obj.values);
+
+      // find the x-axis value for this object (use first value or fallback "")
+      const currentXvalue =
+        obj.conditions.find((c) => c.name === xAxisVar)?.values?.[0] ?? "";
+
+      // add the same x value for each y entry from this object
+      x.push(...Array(obj.values.length).fill(currentXvalue));
+    });
+
+    return [x, y];
+  };
+
+  const violinA = useMemo(
+    () =>
+      calculateViolinData(
+        data,
+        plotInfo.legendValues[0],
+        plotInfo.legendVar,
+        plotInfo.xAxisVar
+      ),
+    [data, plotInfo]
+  );
+
+  const violinB = useMemo(
+    () =>
+      calculateViolinData(
+        data,
+        plotInfo.legendValues[1],
+        plotInfo.legendVar,
+        plotInfo.xAxisVar
+      ),
+    [data, plotInfo]
+  );
+
+  // destructure before rendering so we don't call the function multiple times:
+  const [xA, yA] = violinA;
+  const [xB, yB] = violinB;
 
   return (
     <>
@@ -161,7 +248,7 @@ const ExploreData: React.FC = () => {
                   Which values should be included?
                 </legend>
                 {selectedXaxis.values
-                  .filter((value) => value !== null)
+                  .filter((value) => value !== "NA")
                   .map((value) => (
                     <div key={value} className="form-check">
                       <input
@@ -174,7 +261,7 @@ const ExploreData: React.FC = () => {
                       <label htmlFor={value}>{value}</label>
                     </div>
                   ))}
-                {selectedXaxis.values.some((value) => value == null) && (
+                {selectedXaxis.values.some((value) => value == "NA") && (
                   <div className="form-check my-3">
                     <input
                       type="checkbox"
@@ -214,7 +301,7 @@ const ExploreData: React.FC = () => {
                   Which values should be included?
                 </legend>
                 {selectedLegend.values
-                  .filter((value) => value !== null)
+                  .filter((value) => value !== "NA")
                   .map((value) => (
                     <div key={value} className="form-check">
                       <input
@@ -227,7 +314,7 @@ const ExploreData: React.FC = () => {
                       <label htmlFor={value}>{value}</label>
                     </div>
                   ))}
-                {selectedLegend.values.some((value) => value == null) && (
+                {selectedLegend.values.some((value) => value == "NA") && (
                   <div className="form-check my-3">
                     <input
                       type="checkbox"
@@ -264,7 +351,7 @@ const ExploreData: React.FC = () => {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => getPlotData()}
+            onClick={() => getData()}
             disabled={
               !selectedXaxis || xAxisValues.length == 0 || !selectedVariable
             }
@@ -272,6 +359,43 @@ const ExploreData: React.FC = () => {
             Create plot
           </button>
         </div>
+      </section>
+      <section>
+        {data && data.length > 0 && (
+          <Plot
+            data={[
+              {
+                type: "violin",
+                x: xA,
+                y: yA,
+                legendgroup: "groupA",
+                name: plotInfo.legendValues[0],
+                box: { visible: true },
+                line: { color: plotInfo.violinColors[0] },
+                meanline: { visible: true },
+              },
+              {
+                type: "violin",
+                x: xB,
+                y: yB,
+                legendgroup: "groupB",
+                name: plotInfo.legendValues[1],
+                box: { visible: true },
+                line: { color: plotInfo.violinColors[1] },
+                meanline: { visible: true },
+              },
+            ]}
+            layout={{
+              width: 700,
+              height: 500,
+              violinmode: "group",
+              title: {
+                text: plotInfo.xAxisVar,
+              },
+            }}
+            onClick={() => console.log("clicked")}
+          />
+        )}
       </section>
     </>
   );
