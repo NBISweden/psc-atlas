@@ -186,7 +186,11 @@ const ExploreData: React.FC = () => {
         obj.conditions.find((c) => c.name === xAxisVar)?.values?.[0] ?? "";
 
       // add the same x value for each y entry from this object
-      x.push(...Array(obj.values.length).fill(currentXvalue));
+      x.push(
+        ...Array(obj.values.length).fill(
+          `${plotInfo.xAxisVar} - ${currentXvalue}`
+        )
+      );
     });
 
     return [x, y];
@@ -243,7 +247,7 @@ const ExploreData: React.FC = () => {
             </select>
 
             {selectedXaxis && (
-              <fieldset>
+              <fieldset className="mb-3">
                 <legend className="fs-6">
                   Which values should be included?
                 </legend>
@@ -253,28 +257,15 @@ const ExploreData: React.FC = () => {
                     <div key={value} className="form-check">
                       <input
                         type="checkbox"
-                        id={value}
+                        id={`${selectedXaxis.name}-${value}`}
                         value={value}
+                        checked={xAxisValues.includes(value)}
                         onChange={handleXAxisValues}
                         className="form-check-input"
                       />
                       <label htmlFor={value}>{value}</label>
                     </div>
                   ))}
-                {selectedXaxis.values.some((value) => value == "NA") && (
-                  <div className="form-check my-3">
-                    <input
-                      type="checkbox"
-                      id="xHealthy"
-                      value="NA"
-                      onChange={handleXAxisValues}
-                      className="form-check-input"
-                    />
-                    <label htmlFor="xHealthy">
-                      Include healthy reference samples
-                    </label>
-                  </div>
-                )}
               </fieldset>
             )}
 
@@ -296,7 +287,7 @@ const ExploreData: React.FC = () => {
             </select>
 
             {selectedLegend && (
-              <fieldset>
+              <fieldset className="mb-3">
                 <legend className="fs-6">
                   Which values should be included?
                 </legend>
@@ -306,28 +297,15 @@ const ExploreData: React.FC = () => {
                     <div key={value} className="form-check">
                       <input
                         type="checkbox"
-                        id={value}
+                        id={`${selectedLegend.name}-${value}`}
                         value={value}
+                        checked={legendValues.includes(value)}
                         onChange={handleLegendValues}
                         className="form-check-input"
                       />
                       <label htmlFor={value}>{value}</label>
                     </div>
                   ))}
-                {selectedLegend.values.some((value) => value == "NA") && (
-                  <div className="form-check my-3">
-                    <input
-                      type="checkbox"
-                      id="legendHealthy"
-                      value="NA"
-                      onChange={handleLegendValues}
-                      className="form-check-input"
-                    />
-                    <label htmlFor="legendHealthy">
-                      Include healthy reference samples
-                    </label>
-                  </div>
-                )}
               </fieldset>
             )}
 
@@ -369,20 +347,24 @@ const ExploreData: React.FC = () => {
                 x: xA,
                 y: yA,
                 legendgroup: "groupA",
-                name: plotInfo.legendValues[0],
+                name: `${plotInfo.legendVar} - ${plotInfo.legendValues[0]}`,
                 box: { visible: true },
                 line: { color: plotInfo.violinColors[0] },
                 meanline: { visible: true },
+                showlegend: true,
+                visible: yA.length == 0 ? "legendonly" : true,
               },
               {
                 type: "violin",
                 x: xB,
                 y: yB,
                 legendgroup: "groupB",
-                name: plotInfo.legendValues[1],
+                name: `${plotInfo.legendVar} - ${plotInfo.legendValues[1]}`,
                 box: { visible: true },
                 line: { color: plotInfo.violinColors[1] },
                 meanline: { visible: true },
+                showlegend: true,
+                visible: yB.length == 0 ? "legendonly" : true,
               },
             ]}
             layout={{
@@ -390,7 +372,7 @@ const ExploreData: React.FC = () => {
               height: 500,
               violinmode: "group",
               title: {
-                text: plotInfo.xAxisVar,
+                text: "",
               },
             }}
             onClick={() => console.log("clicked")}
