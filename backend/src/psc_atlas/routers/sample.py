@@ -166,47 +166,47 @@ def get_sample_measurements(
     measurements: List[APIMeasurement] = []
 
     with get_session() as session:
-        # Create aliases for condition and condition variable tables.
-        aliases = {}
-        for condition in conditions:
-            condvar_alias = aliased(ConditionVariable, name="cv_" + condition.name)
-            cond_alias = aliased(Condition, name="c_" + condition.name)
-            aliases[condition.name] = (condvar_alias, cond_alias)
-
-        # Build the base query that will extract the measurement values
-        # for the specified variable and sample type.  We need to be
-        # able tell which condition variable and value each measurement
-        # corresponds to, so we include those in the select statement.
+        # Build the base query, joining necessary tables and filtering
+        # by sample type and measurement variable name.
         query = session.query(Measurement.value)
-        for condition in conditions:
-            condvar_alias, cond_alias = aliases[condition.name]
-            query = query.add_column(condvar_alias.name)
-            query = query.add_column(cond_alias.value)
-
         query = query.join(MeasurementVariable)
         query = query.join(Sample)
         query = query.filter(Sample.type == type)
         query = query.filter(MeasurementVariable.name == variable)
 
-        # Join with conditions, once for each condition provided.
-        # Condition are joined to sample via sample ID, and condition
-        # variables are joined to conditions via condition variable ID.
+        # Dynamically add joins and filters for each condition provided.
+        i: int = 0
         for condition in conditions:
-            condvar_alias, cond_alias = aliases[condition.name]
+            i += 1
+            # Create aliased tables for condition variable and condition
+            # to allow multiple joins of the same table.
+            condvar_alias = aliased(ConditionVariable, name="cv_" + str(i))
+            cond_alias = aliased(Condition, name="c_" + str(i))
+
+            # Add the condition variable name and condition value to the
+            # selected columns.
+            query = query.add_column(condvar_alias.name)
+            query = query.add_column(cond_alias.value)
+
+            # Join the aliased tables to the query, joining the
+            # condition to the sample and the condition variable to the
+            # condition.
             query = query.join(cond_alias, cond_alias.sample_id == Sample.id)
             query = query.join(
                 condvar_alias, condvar_alias.id == cond_alias.condition_variable_id
             )
+
+            # Apply filters for the condition variable name and values.
             query = query.filter(condvar_alias.name == condition.name)
             query = query.filter(cond_alias.value.in_(condition.values))
 
-        # Execute the query and extract the measurement values for
-        # each combination of condition variable and condition: 
         result = query.order_by(Sample.id).all()
         measurement_dict: dict = {}
 
         for row in result:
+            # The first element in the row is the measurement value.
             measurement_value = row[0]
+
             # The rest of the row contains pairs of condition variable
             # name and condition value; we need to keep track of these
             # to group the measurements correctly.
@@ -217,11 +217,13 @@ def get_sample_measurements(
 
             measurement_dict[condition_key].append(measurement_value)
 
+        # Construct the response measurements from the grouped data.
         for condition_key, values in measurement_dict.items():
             api_conditions = [
                 APICondition(name=cond_var, values=[cond_value])
                 for cond_var, cond_value in condition_key
             ]
+
             measurements.append(
                 APIMeasurement(
                     variable=variable,
@@ -229,6 +231,5 @@ def get_sample_measurements(
                     values=values,
                 )
             )
-
 
     return SampleMeasurementResponse(measurements=measurements)
