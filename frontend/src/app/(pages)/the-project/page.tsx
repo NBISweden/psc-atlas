@@ -65,59 +65,63 @@ const TheProject = async () => {
 
   return (
     <div className="container">
-      <h2 className="h1 py-4">{data.title ? data.title : "The project"}</h2>
-      {content && (
-        <div className="mb-4 border-bottom pb-4">
-          <ReactMarkdown>{content}</ReactMarkdown>
-        </div>
-      )}
-      <section className="border-bottom pb-4 mb-4">
-        <h3 className="py-4">Project Leaders</h3>
-        <div className="d-flex flex-wrap gap-4">
-          {data.leaders?.map((leader, index) => (
-            <LeaderCard
-              key={index}
-              name={leader.name}
-              email={leader.email}
-              imageUrl={leader.imageUrl}
-            />
-          )) || <p>No project leaders listed.</p>}
-        </div>
-      </section>
-      <section className="border-bottom pb-4 mb-4">
-        <h3 className="py-4">Contributors</h3>
-        {data.contributors ? (
-          data.contributors.map((contributor, index) => (
-            <div key={index} className="mb-3">
-              <h4 className="h5 d-flex align-items-center gap-2">
-                {contributor.flagUrl && (
-                  <img
-                    src={contributor.flagUrl}
-                    alt={`Flag of ${contributor.country}`}
-                    className={styles.flag}
-                  />
-                )}
-                {contributor.country}
-              </h4>
-              <p>{contributor.names}</p>
+      <div className="row">
+        <div className="col-lg-8 col-xl-8">
+          <h2 className="h1 py-4">{data.title ? data.title : "The project"}</h2>
+          {content && (
+            <div className="mb-4 border-bottom pb-4">
+              <ReactMarkdown>{content}</ReactMarkdown>
             </div>
-          ))
-        ) : (
-          <p>No contributors listed.</p>
-        )}
-      </section>
-      <section className="pb-4 mb-4">
-        <h3 className="py-4">Financial support</h3>
-        {data.funders ? (
-          <ul className="list-unstyled">
-            {data.funders.map((funder, index) => (
-              <li key={index}>{funder.name}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No funders listed.</p>
-        )}
-      </section>
+          )}
+          <section className="border-bottom pb-4 mb-4">
+            <h3 className="py-4">Project Leaders</h3>
+            <div className="d-flex flex-wrap gap-4">
+              {data.leaders?.map((leader, index) => (
+                <LeaderCard
+                  key={index}
+                  name={leader.name}
+                  email={leader.email}
+                  imageUrl={leader.imageUrl}
+                />
+              )) || <p>No project leaders listed.</p>}
+            </div>
+          </section>
+          <section className="border-bottom pb-4 mb-4">
+            <h3 className="py-4">Contributors</h3>
+            {data.contributors ? (
+              data.contributors.map((contributor, index) => (
+                <div key={index} className="mb-3">
+                  <h4 className="h5 d-flex align-items-center gap-2">
+                    {contributor.flagUrl && (
+                      <img
+                        src={contributor.flagUrl}
+                        alt={`Flag of ${contributor.country}`}
+                        className={styles.flag}
+                      />
+                    )}
+                    {contributor.country}
+                  </h4>
+                  <p>{contributor.names}</p>
+                </div>
+              ))
+            ) : (
+              <p>No contributors listed.</p>
+            )}
+          </section>
+          <section className="pb-4 mb-4">
+            <h3 className="py-4">Financial support</h3>
+            {data.funders ? (
+              <ul className="list-unstyled">
+                {data.funders.map((funder, index) => (
+                  <li key={index}>{funder.name}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No funders listed.</p>
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   );
 };
