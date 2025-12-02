@@ -82,7 +82,7 @@ export default function Sidebar({ contact }: SidebarProps) {
                         )}
                     </li>
                     <li className={styles.item}>
-                        <Link href="#" className={styles["sidebar-link"]}>
+                        <Link href="/the-project" className={styles["sidebar-link"]}>
                             The Project
                         </Link>
                     </li>
