@@ -37,7 +37,7 @@ export default async function Page() {
                                         <div className="text-primary">PMID: {pub.pmid}</div>
                                     )}
 
-                                    <a href={pub.url} className="btn btn-primary mt-2">
+                                    <a href={pub.url} className="btn btn-outline-primary mt-2">
                                         Go to publication
                                     </a>
                                 </div>
