@@ -240,7 +240,13 @@ const ExploreData: React.FC = () => {
               </option>
               {conditions &&
                 conditions.map((condition) => (
-                  <option key={"x-" + condition.name} value={condition.name}>
+                  <option
+                    key={"x-" + condition.name}
+                    value={condition.name}
+                    disabled={
+                      selectedLegend && selectedLegend.name === condition.name
+                    }
+                  >
                     {condition.name}
                   </option>
                 ))}
@@ -280,7 +286,13 @@ const ExploreData: React.FC = () => {
               <option value="">No condition selected</option>
               {conditions &&
                 conditions.map((condition) => (
-                  <option key={condition.name} value={condition.name}>
+                  <option
+                    key={condition.name}
+                    value={condition.name}
+                    disabled={
+                      selectedXaxis && selectedXaxis.name === condition.name
+                    }
+                  >
                     {condition.name}
                   </option>
                 ))}
