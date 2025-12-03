@@ -87,7 +87,7 @@ export default function Sidebar({ contact }: SidebarProps) {
                         </Link>
                     </li>
                     <li className={styles.item}>
-                        <Link href="#" className={styles["sidebar-link"]}>
+                        <Link href="/publications" className={styles["sidebar-link"]}>
                             Publications
                         </Link>
                     </li>
