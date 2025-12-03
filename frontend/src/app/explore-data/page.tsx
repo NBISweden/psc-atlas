@@ -4,6 +4,65 @@ import React, { useEffect, useState, useMemo } from "react";
 import Plot from "../components/Plot/Plot";
 import { toggleArray } from "../utils";
 
+type Condition = {
+  name: string;
+  values: string[];
+};
+
+type ConditionResponse = {
+  conditions: Condition[];
+};
+
+type VariableResponse = {
+  variables: string[];
+};
+
+type MeasurementResponse = {
+  variable: string;
+  conditions: Condition[];
+  values: number[];
+};
+
+type PlotInfo = {
+  xAxisVar: string;
+  legendVar: string;
+  xAxisValues: string[];
+  legendValues: string[];
+  violinColors: string[];
+};
+
+const calculateViolinData = (
+  data: MeasurementResponse[],
+  legendValue: string,
+  legendVar: string,
+  xAxisVar: string
+): [string[], number[]] => {
+  if (!data || data.length === 0) return [[], []];
+
+  const filtered = data.filter((item) =>
+    item.conditions.some(
+      (c) => c.name === legendVar && c.values.includes(legendValue)
+    )
+  );
+
+  const x: string[] = [];
+  const y: number[] = [];
+
+  filtered.forEach((obj) => {
+    // push all y values
+    y.push(...obj.values);
+
+    // find the x-axis value for this object (use first value or fallback "")
+    const currentXvalue =
+      obj.conditions.find((c) => c.name === xAxisVar)?.values?.[0] ?? "";
+
+    // add the same x value for each y entry from this object
+    x.push(...Array(obj.values.length).fill(`${xAxisVar} - ${currentXvalue}`));
+  });
+
+  return [x, y];
+};
+
 const ExploreData: React.FC = () => {
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [variables, setVariables] = useState<string[]>([]);
@@ -24,33 +83,6 @@ const ExploreData: React.FC = () => {
   // should come from the URL in the future depending on the user's
   // menu choice (metabolite / protein/ miRNA). Should also become a type.
   const dataset = "proteins";
-
-  type Condition = {
-    name: string;
-    values: string[];
-  };
-
-  type ConditionResponse = {
-    conditions: Condition[];
-  };
-
-  type VariableResponse = {
-    variables: string[];
-  };
-
-  type MeasurementResponse = {
-    variable: string;
-    conditions: Condition[];
-    values: number[];
-  };
-
-  type PlotInfo = {
-    xAxisVar: string;
-    legendVar: string;
-    xAxisValues: string[];
-    legendValues: string[];
-    violinColors: string[];
-  };
 
   const getConditions = async () => {
     try {
@@ -160,42 +192,6 @@ const ExploreData: React.FC = () => {
     }
   };
 
-  const calculateViolinData = (
-    data: MeasurementResponse[],
-    legendValue: string,
-    legendVar: string,
-    xAxisVar: string
-  ): [string[], number[]] => {
-    if (!data || data.length === 0) return [[], []];
-
-    const filtered = data.filter((item) =>
-      item.conditions.some(
-        (c) => c.name === legendVar && c.values.includes(legendValue)
-      )
-    );
-
-    const x: string[] = [];
-    const y: number[] = [];
-
-    filtered.forEach((obj) => {
-      // push all y values
-      y.push(...obj.values);
-
-      // find the x-axis value for this object (use first value or fallback "")
-      const currentXvalue =
-        obj.conditions.find((c) => c.name === xAxisVar)?.values?.[0] ?? "";
-
-      // add the same x value for each y entry from this object
-      x.push(
-        ...Array(obj.values.length).fill(
-          `${plotInfo.xAxisVar} - ${currentXvalue}`
-        )
-      );
-    });
-
-    return [x, y];
-  };
-
   const violinA = useMemo(
     () =>
       calculateViolinData(
@@ -217,6 +213,17 @@ const ExploreData: React.FC = () => {
       ),
     [data, plotInfo]
   );
+
+  const layout: Partial<Plotly.Layout> & {
+    violinmode: "group" | "overlay";
+  } = {
+    width: 700,
+    height: 500,
+    violinmode: "group",
+    title: {
+      text: "",
+    },
+  };
 
   // destructure before rendering so we don't call the function multiple times:
   const [xA, yA] = violinA;
@@ -269,7 +276,9 @@ const ExploreData: React.FC = () => {
                         onChange={handleXAxisValues}
                         className="form-check-input"
                       />
-                      <label htmlFor={value}>{value}</label>
+                      <label htmlFor={`${selectedXaxis.name}-${value}`}>
+                        {value}
+                      </label>
                     </div>
                   ))}
               </fieldset>
@@ -315,7 +324,9 @@ const ExploreData: React.FC = () => {
                         onChange={handleLegendValues}
                         className="form-check-input"
                       />
-                      <label htmlFor={value}>{value}</label>
+                      <label htmlFor={`${selectedLegend.name}-${value}`}>
+                        {value}
+                      </label>
                     </div>
                   ))}
               </fieldset>
@@ -379,14 +390,7 @@ const ExploreData: React.FC = () => {
                 visible: yB.length == 0 ? "legendonly" : true,
               },
             ]}
-            layout={{
-              width: 700,
-              height: 500,
-              violinmode: "group",
-              title: {
-                text: "",
-              },
-            }}
+            layout={layout}
             onClick={() => console.log("clicked")}
           />
         )}
