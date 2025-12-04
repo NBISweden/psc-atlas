@@ -10,13 +10,5 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def get_session():
     """Provide a transactional scope around a series of operations."""
-    session = SessionLocal()
-    try:
+    with SessionLocal() as session, session.begin():
         yield session
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        logger.exception("Session rollback because of exception")
-        raise
-    finally:
-        session.close()
