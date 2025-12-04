@@ -15,7 +15,7 @@ def get_session():
         with session.begin():
             yield session
     except Exception as e:
-        logger.exception("Session rollback because of exception")
+        logger.exception("Session rolled back due to an exception: %s", e)
         raise
     finally:
         session.close()
