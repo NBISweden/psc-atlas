@@ -9,6 +9,10 @@ type Condition = {
   values: string[];
 };
 
+type TypesResponse = {
+  types: string[];
+};
+
 type ConditionResponse = {
   conditions: Condition[];
 };
@@ -64,6 +68,8 @@ const calculateViolinData = (
 };
 
 const ExploreData: React.FC = () => {
+  const [datasets, setDatasets] = useState<string[]>([]);
+  const [selectedDataset, setSelectedDataset] = useState<string>();
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [variables, setVariables] = useState<string[]>([]);
   const [selectedXaxis, setSelectedXaxis] = useState<Condition>();
@@ -80,13 +86,26 @@ const ExploreData: React.FC = () => {
     violinColors: ["#f67878", "#3d4449", "#F7C59F"],
   });
 
-  // should come from the URL in the future depending on the user's
-  // menu choice (metabolite / protein/ miRNA). Should also become a type.
-  const dataset = "proteins";
+  const getDatasets = async () => {
+    try {
+      const response = await fetch(`/api/v1/sample/types`);
+      if (!response.ok) {
+        throw new Error("Couldn't receive types.");
+      }
+      const fetchedDatasets: TypesResponse = await response.json();
+      setDatasets(fetchedDatasets.types);
+    } catch (error) {
+      console.log("An error occured: ", error);
+      setDatasets([]);
+    }
+    return;
+  };
 
   const getConditions = async () => {
     try {
-      const response = await fetch(`/api/v1/sample/conditions?type=${dataset}`);
+      const response = await fetch(
+        `/api/v1/sample/conditions?type=${selectedDataset}`
+      );
       if (!response.ok) {
         throw new Error("Couldn't receive conditions.");
       }
@@ -101,7 +120,9 @@ const ExploreData: React.FC = () => {
 
   const getVariables = async () => {
     try {
-      const response = await fetch(`/api/v1/sample/variables?type=${dataset}`);
+      const response = await fetch(
+        `/api/v1/sample/variables?type=${selectedDataset}`
+      );
       if (!response.ok) {
         throw new Error("Couldn't receive variables.");
       }
@@ -114,9 +135,25 @@ const ExploreData: React.FC = () => {
   };
 
   useEffect(() => {
+    getDatasets();
+  }, []);
+
+  useEffect(() => {
     getConditions();
     getVariables();
-  }, []);
+  }, [selectedDataset]);
+
+  const handleSelectDataset = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedXaxis(undefined);
+    setSelectedLegend(undefined);
+    setXAxisValues([]);
+    setLegendValues([]);
+    setSelectedVariable(undefined);
+    setData([]);
+    setSelectedDataset(
+      datasets.find((dataset) => dataset === event.target.value)
+    );
+  };
 
   const handleSelectXaxis = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setXAxisValues([]);
@@ -172,7 +209,7 @@ const ExploreData: React.FC = () => {
     setPlotInfo(currentPlotInfo);
     try {
       const response = await fetch(
-        `/api/v1/sample/measurements?type=${dataset}&variable=${selectedVariable}`,
+        `/api/v1/sample/measurements?type=${selectedDataset}&variable=${selectedVariable}`,
         {
           method: "POST",
           headers: {
@@ -232,175 +269,200 @@ const ExploreData: React.FC = () => {
   return (
     <>
       <section>
-        <div>
-          <form className="d-flex flex-column mb-5">
-            <h5>Choose your x-axis variable</h5>
-            <label htmlFor="xAxis">Select condition</label>
-            <select
-              id="xAxis"
-              value={selectedXaxis ? selectedXaxis.name : ""}
-              onChange={handleSelectXaxis}
-              className="form-select mb-3"
-            >
-              <option value="" disabled>
-                No condition selected
-              </option>
-              {conditions &&
-                conditions.map((condition) => (
-                  <option
-                    key={"x-" + condition.name}
-                    value={condition.name}
-                    disabled={
-                      selectedLegend && selectedLegend.name === condition.name
-                    }
-                  >
-                    {condition.name}
-                  </option>
-                ))}
-            </select>
-
-            {selectedXaxis && (
-              <fieldset className="mb-3">
-                <legend className="fs-6">
-                  Which values should be included?
-                </legend>
-                {selectedXaxis.values
-                  .filter((value) => value !== "NA")
-                  .map((value) => (
-                    <div key={value} className="form-check">
-                      <input
-                        type="checkbox"
-                        id={`${selectedXaxis.name}-${value}`}
-                        value={value}
-                        checked={xAxisValues.includes(value)}
-                        onChange={handleXAxisValues}
-                        className="form-check-input"
-                      />
-                      <label htmlFor={`${selectedXaxis.name}-${value}`}>
-                        {value}
-                      </label>
-                    </div>
-                  ))}
-              </fieldset>
-            )}
-
-            <h5>Choose your legend variable</h5>
-            <label htmlFor="legend">Select condition</label>
-            <select
-              id="legend"
-              value={selectedLegend ? selectedLegend.name : ""}
-              onChange={handleSelectLegend}
-              className="form-select mb-3"
-            >
-              <option value="">No condition selected</option>
-              {conditions &&
-                conditions.map((condition) => (
-                  <option
-                    key={condition.name}
-                    value={condition.name}
-                    disabled={
-                      selectedXaxis && selectedXaxis.name === condition.name
-                    }
-                  >
-                    {condition.name}
-                  </option>
-                ))}
-            </select>
-
-            {selectedLegend && (
-              <fieldset className="mb-3">
-                <legend className="fs-6">
-                  Which values should be included?
-                </legend>
-                {selectedLegend.values
-                  .filter((value) => value !== "NA")
-                  .map((value) => (
-                    <div key={value} className="form-check">
-                      <input
-                        type="checkbox"
-                        id={`${selectedLegend.name}-${value}`}
-                        value={value}
-                        checked={legendValues.includes(value)}
-                        onChange={handleLegendValues}
-                        className="form-check-input"
-                      />
-                      <label htmlFor={`${selectedLegend.name}-${value}`}>
-                        {value}
-                      </label>
-                    </div>
-                  ))}
-              </fieldset>
-            )}
-
-            <h5>Select your {dataset}</h5>
-            <label htmlFor="variable">Select {dataset}</label>
-            <select
-              id="variable"
-              value={selectedVariable ? selectedVariable : ""}
-              onChange={handleSelectVariable}
-              className="form-select"
-            >
-              <option value="" disabled></option>
-              {variables &&
-                variables.map((variable) => (
-                  <option key={variable} value={variable}>
-                    {variable}
-                  </option>
-                ))}
-            </select>
-          </form>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => getData()}
-            disabled={
-              !selectedXaxis || xAxisValues.length == 0 || !selectedVariable
-            }
+        <form className="d-flex flex-column mb-5">
+          <h5>Which dataset do you want to explore?</h5>
+          <label>Select dataset</label>
+          <select
+            id="datasets"
+            value={selectedDataset ? selectedDataset : ""}
+            onChange={handleSelectDataset}
+            className="form-select mb-3"
           >
-            Create plot
-          </button>
-        </div>
+            <option>No dataset selected</option>
+            {datasets &&
+              datasets.map((dataset) => (
+                <option key={dataset} value={dataset}>
+                  {dataset}
+                </option>
+              ))}
+          </select>
+        </form>
       </section>
-      <section>
-        {data && data.length > 0 && (
-          <Plot
-            data={[
-              {
-                type: "violin",
-                x: xA,
-                y: yA,
-                legendgroup: "groupA",
-                name: `${plotInfo.legendVar} - ${plotInfo.legendValues[0]}`,
-                box: { visible: true },
-                line: { color: plotInfo.violinColors[0] },
-                meanline: { visible: true },
-                showlegend: true,
-                visible: yA.length == 0 ? "legendonly" : true,
-                points: "all",
-                jitter: 0.2,
-                pointpos: -1.3,
-              },
-              {
-                type: "violin",
-                x: xB,
-                y: yB,
-                legendgroup: "groupB",
-                name: `${plotInfo.legendVar} - ${plotInfo.legendValues[1]}`,
-                box: { visible: true },
-                line: { color: plotInfo.violinColors[1] },
-                meanline: { visible: true },
-                showlegend: true,
-                visible: yB.length == 0 ? "legendonly" : true,
-                points: "all",
-                jitter: 0.2,
-                pointpos: -1.3,
-              },
-            ]}
-            layout={layout}
-            onClick={() => console.log("clicked")}
-          />
-        )}
-      </section>
+      {selectedDataset && (
+        <>
+          <section>
+            <div>
+              <form className="d-flex flex-column mb-5">
+                <h5>Choose your x-axis variable</h5>
+                <label htmlFor="xAxis">Select condition</label>
+                <select
+                  id="xAxis"
+                  value={selectedXaxis ? selectedXaxis.name : ""}
+                  onChange={handleSelectXaxis}
+                  className="form-select mb-3"
+                >
+                  <option value="" disabled>
+                    No condition selected
+                  </option>
+                  {conditions &&
+                    conditions.map((condition) => (
+                      <option
+                        key={"x-" + condition.name}
+                        value={condition.name}
+                        disabled={
+                          selectedLegend &&
+                          selectedLegend.name === condition.name
+                        }
+                      >
+                        {condition.name}
+                      </option>
+                    ))}
+                </select>
+
+                {selectedXaxis && (
+                  <fieldset className="mb-3">
+                    <legend className="fs-6">
+                      Which values should be included?
+                    </legend>
+                    {selectedXaxis.values
+                      .filter((value) => value !== "NA")
+                      .map((value) => (
+                        <div key={value} className="form-check">
+                          <input
+                            type="checkbox"
+                            id={`${selectedXaxis.name}-${value}`}
+                            value={value}
+                            checked={xAxisValues.includes(value)}
+                            onChange={handleXAxisValues}
+                            className="form-check-input"
+                          />
+                          <label htmlFor={`${selectedXaxis.name}-${value}`}>
+                            {value}
+                          </label>
+                        </div>
+                      ))}
+                  </fieldset>
+                )}
+
+                <h5>Choose your legend variable</h5>
+                <label htmlFor="legend">Select condition</label>
+                <select
+                  id="legend"
+                  value={selectedLegend ? selectedLegend.name : ""}
+                  onChange={handleSelectLegend}
+                  className="form-select mb-3"
+                >
+                  <option value="">No condition selected</option>
+                  {conditions &&
+                    conditions.map((condition) => (
+                      <option
+                        key={condition.name}
+                        value={condition.name}
+                        disabled={
+                          selectedXaxis && selectedXaxis.name === condition.name
+                        }
+                      >
+                        {condition.name}
+                      </option>
+                    ))}
+                </select>
+
+                {selectedLegend && (
+                  <fieldset className="mb-3">
+                    <legend className="fs-6">
+                      Which values should be included?
+                    </legend>
+                    {selectedLegend.values
+                      .filter((value) => value !== "NA")
+                      .map((value) => (
+                        <div key={value} className="form-check">
+                          <input
+                            type="checkbox"
+                            id={`${selectedLegend.name}-${value}`}
+                            value={value}
+                            checked={legendValues.includes(value)}
+                            onChange={handleLegendValues}
+                            className="form-check-input"
+                          />
+                          <label htmlFor={`${selectedLegend.name}-${value}`}>
+                            {value}
+                          </label>
+                        </div>
+                      ))}
+                  </fieldset>
+                )}
+
+                <h5>Select your {selectedDataset}</h5>
+                <label htmlFor="variable">Select {selectedDataset}</label>
+                <select
+                  id="variable"
+                  value={selectedVariable ? selectedVariable : ""}
+                  onChange={handleSelectVariable}
+                  className="form-select"
+                >
+                  <option value="" disabled></option>
+                  {variables &&
+                    variables.map((variable) => (
+                      <option key={variable} value={variable}>
+                        {variable}
+                      </option>
+                    ))}
+                </select>
+              </form>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => getData()}
+                disabled={
+                  !selectedXaxis || xAxisValues.length == 0 || !selectedVariable
+                }
+              >
+                Create plot
+              </button>
+            </div>
+          </section>
+          <section>
+            {data && data.length > 0 && (
+              <Plot
+                data={[
+                  {
+                    type: "violin",
+                    x: xA,
+                    y: yA,
+                    legendgroup: "groupA",
+                    name: `${plotInfo.legendVar} - ${plotInfo.legendValues[0]}`,
+                    box: { visible: true },
+                    line: { color: plotInfo.violinColors[0] },
+                    meanline: { visible: true },
+                    showlegend: true,
+                    visible: yA.length == 0 ? "legendonly" : true,
+                    points: "all",
+                    jitter: 0.2,
+                    pointpos: -1.3,
+                  },
+                  {
+                    type: "violin",
+                    x: xB,
+                    y: yB,
+                    legendgroup: "groupB",
+                    name: `${plotInfo.legendVar} - ${plotInfo.legendValues[1]}`,
+                    box: { visible: true },
+                    line: { color: plotInfo.violinColors[1] },
+                    meanline: { visible: true },
+                    showlegend: true,
+                    visible: yB.length == 0 ? "legendonly" : true,
+                    points: "all",
+                    jitter: 0.2,
+                    pointpos: -1.3,
+                  },
+                ]}
+                layout={layout}
+                onClick={() => console.log("clicked")}
+              />
+            )}
+          </section>
+        </>
+      )}
     </>
   );
 };
