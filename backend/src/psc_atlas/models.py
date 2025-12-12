@@ -4,26 +4,10 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
-from sqlalchemy import Enum, String, Date, Float, ForeignKey, UniqueConstraint
+from sqlalchemy import String, Date, Float, ForeignKey, UniqueConstraint
 
 from datetime import date
 from typing import List
-
-import enum
-
-
-class YesNo(enum.Enum):
-    """Simple Enum for Yes/No fields."""
-
-    YES = "yes"
-    NO = "no"
-
-
-class HiLo(enum.Enum):
-    """Simple Enum for High/Low fields."""
-
-    HIGH = "High"
-    LOW = "Low"
 
 
 class Base(DeclarativeBase):
@@ -34,49 +18,86 @@ class Base(DeclarativeBase):
 
 
 class Sample(Base):
-    __tablename__ = "samples"
+    __tablename__ = "sample"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    type: Mapped[str] = mapped_column(String(16))
-    pscid: Mapped[str] = mapped_column(String(16))
-    sampling_date: Mapped[date] = mapped_column(Date, nullable=True)
-    psc: Mapped[YesNo] = mapped_column(Enum(YesNo), nullable=True)
-    cca: Mapped[YesNo] = mapped_column(Enum(YesNo), nullable=True)
-    ibd: Mapped[YesNo] = mapped_column(Enum(YesNo), nullable=True)
-    fibrosis: Mapped[HiLo] = mapped_column(Enum(HiLo), nullable=True)
-    bilirubin: Mapped[HiLo] = mapped_column(Enum(HiLo), nullable=True)
-    alp: Mapped[HiLo] = mapped_column(Enum(HiLo), nullable=True)
+    type: Mapped[str] = mapped_column(String(32))
+    sample_id: Mapped[str] = mapped_column(String(32))
+    sample_date: Mapped[date] = mapped_column(Date, nullable=True)
 
+    conditions: Mapped[List["Condition"]] = relationship(
+        "Condition", back_populates="sample"
+    )
     measurements: Mapped[List["Measurement"]] = relationship(
-        "Measurement", cascade="all, delete-orphan"
+        "Measurement", back_populates="sample"
     )
 
-    __table_args__ = (UniqueConstraint("pscid", "type"),)
+    __table_args__ = (UniqueConstraint("type", "sample_id"),)
 
 
-class Variable(Base):
+class ConditionVariable(Base):
+    __tablename__ = "condition_variable"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(32), unique=True)
+
+    conditions: Mapped[List["Condition"]] = relationship(
+        "Condition", back_populates="condition_variable"
+    )
+
+
+class Condition(Base):
+    __tablename__ = "condition"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sample_id: Mapped[int] = mapped_column(ForeignKey("sample.id"))
+    condition_variable_id: Mapped[int] = mapped_column(
+        ForeignKey("condition_variable.id")
+    )
+    value: Mapped[str] = mapped_column(String(32))
+
+    sample: Mapped["Sample"] = relationship("Sample", back_populates="conditions")
+    condition_variable: Mapped["ConditionVariable"] = relationship(
+        "ConditionVariable", back_populates="conditions"
+    )
+
+    __table_args__ = (UniqueConstraint("condition_variable_id", "sample_id"),)
+
+
+class MeasurementVariable(Base):
     """
     Variable table to store metabolite, miRNA, and protein names.
     The table is referenced by the measurements and base_stats tables.
     """
 
-    __tablename__ = "variables"
+    __tablename__ = "measurement_variable"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(32), unique=True)
+
+    measurements: Mapped[List["Measurement"]] = relationship(
+        "Measurement", back_populates="measurment_variable"
+    )
 
 
 class Measurement(Base):
     """Measurement table to store values for each sample and variable."""
 
-    __tablename__ = "measurements"
+    __tablename__ = "measurement"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    sample_id: Mapped[int] = mapped_column(ForeignKey("samples.id"))
-    variable_id: Mapped[int] = mapped_column(ForeignKey("variables.id"))
+    sample_id: Mapped[int] = mapped_column(ForeignKey("sample.id"))
+    measurement_variable_id: Mapped[int] = mapped_column(
+        ForeignKey("measurement_variable.id")
+    )
     value: Mapped[float] = mapped_column(Float)
 
-    __table_args__ = (UniqueConstraint("sample_id", "variable_id"),)
+    measurment_variable: Mapped["MeasurementVariable"] = relationship(
+        "MeasurementVariable", back_populates="measurements"
+    )
+    sample: Mapped["Sample"] = relationship("Sample", back_populates="measurements")
+
+    __table_args__ = (UniqueConstraint("measurement_variable_id", "sample_id"),)
 
 
 # "STATS" table models
@@ -88,17 +109,17 @@ class BaseStats(Base):
     __tablename__ = "base_stats"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    variable_id: Mapped[int] = mapped_column(ForeignKey("variables.id"))
+    variable_id: Mapped[int] = mapped_column(ForeignKey("measurement_variable.id"))
     condition: Mapped[str] = mapped_column(
         String(16)
     )  # CCA, IBD, ALP, bilirubin, fibrosis
 
     # Common fields
-    fold_change: Mapped[float] = mapped_column(Float)
-    log2fc: Mapped[float] = mapped_column(Float, nullable=True)
-    p_value: Mapped[float] = mapped_column(Float, nullable=True)
-    auc: Mapped[float] = mapped_column(Float)
-    adj_p_value: Mapped[float] = mapped_column(Float, nullable=True)
+    fold_change: Mapped[str] = mapped_column(String, nullable=True)
+    log2fc: Mapped[str] = mapped_column(String, nullable=True)
+    p_value: Mapped[str] = mapped_column(String, nullable=True)
+    auc: Mapped[str] = mapped_column(String, nullable=True)
+    adj_p_value: Mapped[str] = mapped_column(String, nullable=True)
 
     # Median values (column names vary by condition)
     median_group1: Mapped[float] = mapped_column(
@@ -127,18 +148,14 @@ class MetaboliteStats(Base):
 
     __tablename__ = "metabolite_stats"
 
-    id: Mapped[int] = mapped_column(
-        ForeignKey("base_stats.id"), primary_key=True
-    )
+    id: Mapped[int] = mapped_column(ForeignKey("base_stats.id"), primary_key=True)
     biochemical: Mapped[str] = mapped_column(String)
     pubchem: Mapped[str] = mapped_column(String, nullable=True)
     hmdb: Mapped[str] = mapped_column(String, nullable=True)
     super_pathway: Mapped[str] = mapped_column(String)
     sub_pathway: Mapped[str] = mapped_column(String)
 
-    base: Mapped["BaseStats"] = relationship(
-        back_populates="metabolite_details"
-    )
+    base: Mapped["BaseStats"] = relationship(back_populates="metabolite_details")
 
 
 class MiRNAStats(Base):
@@ -146,9 +163,7 @@ class MiRNAStats(Base):
 
     __tablename__ = "mirna_stats"
 
-    id: Mapped[int] = mapped_column(
-        ForeignKey("base_stats.id"), primary_key=True
-    )
+    id: Mapped[int] = mapped_column(ForeignKey("base_stats.id"), primary_key=True)
     base: Mapped["BaseStats"] = relationship(back_populates="mirna_details")
 
 
@@ -157,9 +172,7 @@ class ProteinStats(Base):
 
     __tablename__ = "protein_stats"
 
-    id: Mapped[int] = mapped_column(
-        ForeignKey("base_stats.id"), primary_key=True
-    )
+    id: Mapped[int] = mapped_column(ForeignKey("base_stats.id"), primary_key=True)
     assay: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String, nullable=True)
     uniprot_id: Mapped[str] = mapped_column(String, nullable=True)

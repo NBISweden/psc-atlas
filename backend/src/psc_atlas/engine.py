@@ -12,15 +12,17 @@ DATABASE_URL = getenv(
     f"sqlite:///{Path.home()}/vol/database/psc-atlas.db",
 )
 
+echo = False
+
 if DATABASE_URL.startswith("sqlite:///"):
     # For SQLite, we need to set check_same_thread to False to allow
     # connections from different threads.
     engine = create_engine(
         DATABASE_URL,
         connect_args={"check_same_thread": False},
-        echo=False,
+        echo=echo,
     )
 else:
-    engine = create_engine(DATABASE_URL, echo=False)
+    engine = create_engine(DATABASE_URL, echo=echo)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

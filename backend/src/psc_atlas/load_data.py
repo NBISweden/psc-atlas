@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import csv
-import logging
 import time
 
 from datetime import datetime
@@ -9,8 +8,10 @@ from pathlib import Path
 
 from sqlalchemy.exc import IntegrityError
 
-from psc_atlas.models import YesNo, HiLo
-from psc_atlas.models import Sample, Measurement, Variable
+from psc_atlas.models import Sample
+from psc_atlas.models import ConditionVariable, Condition
+from psc_atlas.models import MeasurementVariable, Measurement
+
 from psc_atlas.models import (
     BaseStats,
     MetaboliteStats,
@@ -20,64 +21,20 @@ from psc_atlas.models import (
 
 from psc_atlas.session import get_session
 
+import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def parse_yes_no(value: str) -> YesNo | None:
-    """Convert string to YesNo enum, or None for NA."""
-    match value.strip().lower():
-        case "na":
-            return None
-        case "yes":
-            return YesNo.YES
-        case "no":
-            return YesNo.NO
-        case _:
-            raise ValueError(f"Invalid YesNo value: {value}")
-
-
-def parse_hi_lo(value) -> HiLo | None:
-    """Convert string to HiLo enum, or None for NA."""
-    match value.strip().lower():
-        case "na":
-            return None
-        case "high":
-            return HiLo.HIGH
-        case "low":
-            return HiLo.LOW
-        case _:
-            raise ValueError(f"Invalid HiLo value: {value}")
-
-
 def parse_date(value) -> datetime | None:
-    """Convert YYYYMMDD string to datetime object, or None for NA."""
+    """Convert YYYYMMDD string to datetime object, or None."""
     value = value.strip()
-    match value.lower():
-        case "na":
-            return None
-        case _:
-            return datetime.strptime(value, "%Y%m%d")
-
-
-def parse_string(value) -> str | None:
-    """Convert string to str, or None for NA."""
-    value = value.strip()
-    match value.lower():
-        case "na":
-            return None
-        case _:
-            return value
-
-
-def parse_float(value) -> float | None:
-    """Convert string to float, or None for NA."""
-    value = value.strip()
-    match value.lower():
-        case "na":
-            return None
-        case _:
-            return float(value)
+    try:
+        return datetime.strptime(value, "%Y%m%d")
+    except ValueError:
+        logger.warning(f"Invalid date format: {value}")
+        return None
 
 
 def load_data_file(file_path: Path):
@@ -98,32 +55,39 @@ def load_data_file(file_path: Path):
     with file_path.open("r") as f:
         reader = csv.DictReader(f)
 
-        sample_cols = {
-            "PSCID",
-            "sampling_date",
-            "PSC",
-            "CCA",
-            "IBD",
-            "Fibrosis",
-            "Bilirubin",
-            "ALP",
-        }
-
-        measurement_cols = set(reader.fieldnames or []) - sample_cols
+        # For the current version of the data, column 1 is ignored,
+        # column 2 is the sample ID, column 3 is the sample date, column
+        # 4 is "PSCID" (ignored), columns 5-9 are condition metadata
+        # (PSC, CCA, IBD, Fibrosis, Bilirubin, ALP), and columns 10 and
+        # beyond are the actual measurement
 
         with get_session() as session:
-            variable_cache = {}
+            condition_variable_cache = {}
+            measurement_variable_cache = {}
 
-            for name in measurement_cols:
-                variable = (
-                    session.query(Variable).filter_by(name=name).first()
-                )
-                if not variable:
-                    variable = Variable(name=name)
-                    session.add(variable)
-                    session.flush()  # To get variable.id
+            fieldnames = reader.fieldnames or []
 
-                variable_cache[name] = variable.id
+            for name in fieldnames[4:10]:
+                condition_variable = (
+                    session.query(ConditionVariable).filter_by(name=name)
+                ).first()
+                if not condition_variable:
+                    condition_variable = ConditionVariable(name=name)
+                    session.add(condition_variable)
+                    session.flush()  # To get condition_variable.id
+
+                condition_variable_cache[name] = condition_variable.id
+
+            for name in fieldnames[10:]:
+                measurment_variable = (
+                    session.query(MeasurementVariable).filter_by(name=name)
+                ).first()
+                if not measurment_variable:
+                    measurment_variable = MeasurementVariable(name=name)
+                    session.add(measurment_variable)
+                    session.flush()  # To get measurment_variable.id
+
+                measurement_variable_cache[name] = measurment_variable.id
 
             progress_time = time.time()
 
@@ -131,44 +95,40 @@ def load_data_file(file_path: Path):
                 # Create savepoint for IntegrityError handling.
                 savepoint = session.begin_nested()
 
-                # For entries without a PSCID, create a dummy PSCID
-                # using the string "NA" followed by the row number.
-                if parse_string(row["PSCID"]) is None:
-                    row["PSCID"] = f"NA_row{reader.line_num}"
-
                 try:
                     sample = Sample(
                         type=data_type,
-                        pscid=row["PSCID"],
-                        sampling_date=parse_date(row["sampling_date"]),
-                        psc=parse_yes_no(row["PSC"]),
-                        cca=parse_yes_no(row["CCA"]),
-                        ibd=parse_yes_no(row["IBD"]),
-                        fibrosis=parse_hi_lo(row["Fibrosis"]),
-                        bilirubin=parse_hi_lo(row["Bilirubin"]),
-                        alp=parse_hi_lo(row["ALP"]),
+                        sample_id=row[fieldnames[1]],
+                        sample_date=parse_date(row[fieldnames[2]]),
                     )
                     session.add(sample)
                     session.flush()  # To get sample.id
 
+                    for name in condition_variable_cache:
+                        condition = Condition(
+                            sample_id=sample.id,
+                            condition_variable_id=condition_variable_cache[name],
+                            value=row[name],
+                        )
+                        session.add(condition)
+
+                    for name in measurement_variable_cache:
+                        measurement = Measurement(
+                            sample_id=sample.id,
+                            measurement_variable_id=measurement_variable_cache[name],
+                            value=float(row[name]),
+                        )
+                        session.add(measurement)
+
                     savepoint.commit()
 
                 except IntegrityError:
-                    # Rollback to savepoint on error (e.g., duplicate
-                    # (type, pscid)).
+                    # Rollback to savepoint on error
                     savepoint.rollback()
                     logger.warning(
-                        f"Skipping duplicate sample entry for PSCID {row['PSCID']} of type {data_type}."
+                        f"Skipping duplicate sample entry for sample ID {row[fieldnames[1]]}."
                     )
                     continue
-
-                for name in measurement_cols:
-                    measurement = Measurement(
-                        sample_id=sample.id,
-                        variable_id=variable_cache[name],
-                        value=float(row[name]),
-                    )
-                    session.add(measurement)
 
                 # Print progress every 5 seconds.
                 current_time = time.time()
@@ -178,9 +138,7 @@ def load_data_file(file_path: Path):
                         f"Processed {reader.line_num} rows for data type {data_type}."
                     )
 
-            logger.info(
-                f"Finished processing data file. Total rows: {reader.line_num}"
-            )
+            logger.info(f"Finished processing data file. Total rows: {reader.line_num}")
 
 
 def load_stats_file(file_path: Path):
@@ -194,9 +152,7 @@ def load_stats_file(file_path: Path):
     "stats_metabolites_CCA.csv" (for metabolite CCA stats).
     """
 
-    stats_type = file_path.stem.split("_")[
-        1
-    ]  # "metabolites", "miRNA", "proteins"
+    stats_type = file_path.stem.split("_")[1]  # "metabolites", "miRNA", "proteins"
     stats_condition = file_path.stem.split("_")[
         2
     ]  # "CCA", "IBD", "alp", "bilirubin", "fibrosis"
@@ -216,12 +172,12 @@ def load_stats_file(file_path: Path):
             for row in reader:
                 variable_name = row["Variable"]
                 variable = (
-                    session.query(Variable)
+                    session.query(MeasurementVariable)
                     .filter_by(name=variable_name)
                     .first()
                 )
                 if not variable:
-                    variable = Variable(name=variable_name)
+                    variable = MeasurementVariable(name=variable_name)
                     session.add(variable)
                     session.flush()  # To get variable.id
 
@@ -234,11 +190,11 @@ def load_stats_file(file_path: Path):
                     base_stats = BaseStats(
                         variable_id=variable_cache[variable_name],
                         condition=stats_condition,
-                        fold_change=float(row["FoldChange"]),
-                        log2fc=parse_float(row["log2FC"]),
-                        p_value=parse_float(row["p_value"]),
-                        auc=float(row["AUC"]),
-                        adj_p_value=parse_float(row["adj_p_value"]),
+                        fold_change=row["FoldChange"],
+                        log2fc=row["log2FC"],
+                        p_value=row["p_value"],
+                        auc=row["AUC"],
+                        adj_p_value=row["adj_p_value"],
                     )
 
                     match stats_condition:
@@ -253,9 +209,8 @@ def load_stats_file(file_path: Path):
                             median_group2 = float(row["median_high_ALP"])
                         case "bilirubin":
                             median_group1 = float(row["median_low_bilirubin"])
-                            median_group2 = float(
-                                row["median_high_bilirubin"]
-                            )
+                            median_group2 = float(row["median_high_bilirubin"])
+
                         case "fibrosis":
                             median_group1 = float(row["median_low_fibrosis"])
                             median_group2 = float(row["median_high_fibrosis"])
@@ -277,8 +232,8 @@ def load_stats_file(file_path: Path):
                             stats = MetaboliteStats(
                                 id=base_stats.id,
                                 biochemical=row["BIOCHEMICAL"],
-                                pubchem=parse_string(row["PUBCHEM"]),
-                                hmdb=parse_string(row["HMDB"]),
+                                pubchem=row["PUBCHEM"],
+                                hmdb=row["HMDB"],
                                 super_pathway=row["SUPER PATHWAY"],
                                 sub_pathway=row["SUB PATHWAY"],
                             )
@@ -288,13 +243,11 @@ def load_stats_file(file_path: Path):
                             stats = ProteinStats(
                                 id=base_stats.id,
                                 assay=row["Assay"],
-                                description=parse_string(row["description"]),
-                                uniprot_id=parse_string(row["Uniprot ID"]),
+                                description=row["description"],
+                                uniprot_id=row["Uniprot ID"],
                             )
                         case _:
-                            raise ValueError(
-                                f"Unknown stats type: {stats_type}"
-                            )
+                            raise ValueError(f"Unknown stats type: {stats_type}")
 
                     session.add(stats)
                     session.flush()
@@ -349,9 +302,7 @@ def main():
             case "stats":
                 load_stats_file(csv_file_path)
             case _:
-                logger.warning(
-                    f"Unrecognized file type (skipping): {csv_file_path}"
-                )
+                logger.warning(f"Unrecognized file type (skipping): {csv_file_path}")
                 continue
 
 

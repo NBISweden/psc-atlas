@@ -17,9 +17,9 @@ set -u
 # while successfully loaded CSV files are deleted after processing.
 
 WATCH_DIR="$HOME/vol/uploads"
-EXTRACT_DIR="$HOME/vol/tmp"
-PROCESSED_DIR="$HOME/vol/processed"
-FAILED_DIR="$HOME/vol/failed"
+EXTRACT_DIR="$WATCH_DIR/.tmp"
+PROCESSED_DIR="$WATCH_DIR/processed"
+FAILED_DIR="$WATCH_DIR/failed"
 
 # FAILED_DIR is exported to be visible to the inlined shell script
 # executed by 'find ... -exec sh -c ...'.
@@ -45,19 +45,28 @@ while true; do
 	done
 
 	# We loop over all names that look like names of Zip archives.
-	for archive in "$WATCH_DIR"/*.zip; do
-		if [ ! -f "$archive" ]; then
-			# No Zip archives found.
+	for name in "$WATCH_DIR"/*.zip "$WATCH_DIR"/*.csv; do
+		if [ ! -f "$name" ]; then
 			continue
 		fi
 
-		printf "Processing archive: %s\n" "$archive" >&2
-		if ! unzip -o "$archive" -d "$EXTRACT_DIR"
-		then
-			printf "Failed to extract archive: %s\n" "$archive" >&2
-			mv -f "$archive" "$FAILED_DIR/"
-			continue
-		fi
+		printf "Processing file: %s\n" "$name" >&2
+		case $name in
+			*.zip)
+				if ! unzip -o "$name" -d "$EXTRACT_DIR"
+				then
+					printf "Failed to extract archive: %s\n" "$name" >&2
+					mv -f "$name" "$FAILED_DIR/"
+					continue
+				fi
+				;;
+			*.csv)
+				# If it's a CSV file, just move it to the
+				# extraction directory for processing.
+				mv -f "$name" "$EXTRACT_DIR/"
+				;;
+		esac
+
 
 		# Now look for CSV files and process them.  We ignore
 		# names that are hidden (starting with a dot).
@@ -77,8 +86,10 @@ while true; do
 
 		# Clean up extracted files and move processed archive.
 		find "$EXTRACT_DIR" ! -path "$EXTRACT_DIR" -delete
-		mv -f "$archive" "$PROCESSED_DIR/"
-		printf "Finished processing archive: %s\n" "$archive" >&2
+		if [ -f "$name" ]; then
+			mv -f "$name" "$PROCESSED_DIR/"
+		fi
+		printf "Finished processing file: %s\n" "$name" >&2
 	done
 
 	# Sleep before checking the directory again.
