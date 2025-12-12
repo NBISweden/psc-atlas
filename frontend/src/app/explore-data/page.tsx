@@ -77,7 +77,7 @@ const ExploreData: React.FC = () => {
     legendVar: "",
     xAxisValues: [],
     legendValues: [],
-    violinColors: ["blue", "pink", "green"],
+    violinColors: ["#f67878", "#3d4449", "#F7C59F"],
   });
 
   // should come from the URL in the future depending on the user's
@@ -376,6 +376,9 @@ const ExploreData: React.FC = () => {
                 meanline: { visible: true },
                 showlegend: true,
                 visible: yA.length == 0 ? "legendonly" : true,
+                points: "all",
+                jitter: 0.2,
+                pointpos: -1.3,
               },
               {
                 type: "violin",
@@ -388,6 +391,9 @@ const ExploreData: React.FC = () => {
                 meanline: { visible: true },
                 showlegend: true,
                 visible: yB.length == 0 ? "legendonly" : true,
+                points: "all",
+                jitter: 0.2,
+                pointpos: -1.3,
               },
             ]}
             layout={layout}
