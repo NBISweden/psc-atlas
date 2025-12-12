@@ -156,17 +156,19 @@ const ExploreData: React.FC = () => {
   };
 
   const handleSelectXaxis = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setXAxisValues([]);
-    setSelectedXaxis(
-      conditions.find((condition) => condition.name === event.target.value)
+    const condition = conditions.find(
+      (condition) => condition.name === event.target.value
     );
+    setSelectedXaxis(condition);
+    condition && setXAxisValues(condition.values);
   };
 
   const handleSelectLegend = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setLegendValues([]);
-    setSelectedLegend(
-      conditions.find((condition) => condition.name === event.target.value)
+    const condition = conditions.find(
+      (condition) => condition.name === event.target.value
     );
+    setSelectedLegend(condition);
+    condition && setLegendValues(condition.values);
   };
 
   const handleSelectVariable = (
