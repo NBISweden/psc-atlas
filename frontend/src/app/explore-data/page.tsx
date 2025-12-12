@@ -88,12 +88,12 @@ const ExploreData: React.FC = () => {
     try {
       const response = await fetch(`/api/v1/sample/conditions?type=${dataset}`);
       if (!response.ok) {
-        throw new Error();
+        throw new Error("Couldn't receive conditions.");
       }
       const fetchedConditions: ConditionResponse = await response.json();
       setConditions(fetchedConditions.conditions);
     } catch (error) {
-      console.log("Error finding conditions:", error);
+      console.log("An error occured: ", error);
       setConditions([]);
     }
     return;
@@ -103,12 +103,12 @@ const ExploreData: React.FC = () => {
     try {
       const response = await fetch(`/api/v1/sample/variables?type=${dataset}`);
       if (!response.ok) {
-        throw new Error();
+        throw new Error("Couldn't receive variables.");
       }
       const fetchedVariables: VariableResponse = await response.json();
       setVariables(fetchedVariables.variables);
     } catch (error) {
-      console.log("Error finding variables", error);
+      console.log("An error occured: ", error);
     }
     return;
   };
